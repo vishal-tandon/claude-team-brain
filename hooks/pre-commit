@@ -1,0 +1,131 @@
+#!/usr/bin/env bash
+# hooks/pre-commit: sensitive content guard for the team brain
+#
+# PURPOSE: Defense-in-depth against the scariest irreversible failure: a leak.
+# Fires on every commit (activated via: git config core.hooksPath hooks).
+# Also fires on the push-to-brain skill path (which refuses --no-verify).
+#
+# Three scan passes:
+#   1. Secret patterns: API keys, tokens, private key headers, .env content
+#   2. Personal content: interaction preferences that belong in local memory,
+#                        not the shared brain (per the local-vs-shared boundary rule)
+#   3. Denylist literal: catch any org/person/project names that must never appear
+#
+# Exit codes: 0 = clean, commit proceeds. 1 = hit found, commit blocked.
+#
+# To activate: git config core.hooksPath hooks
+# (setup-brain does this automatically during install)
+
+set -euo pipefail
+
+STAGED=$(git diff --cached --name-only --diff-filter=ACM 2>/dev/null || true)
+
+if [[ -z "$STAGED" ]]; then
+  exit 0
+fi
+
+ERRORS=()
+
+# ─── PASS 1: Secret patterns ─────────────────────────────────────────────────
+# Patterns known to indicate credentials or secrets embedded in content.
+
+SECRET_PATTERNS=(
+  # Generic API key shapes
+  'api[_-]?key\s*[:=]\s*["\x27]?[A-Za-z0-9_\-]{20,}'
+  'api[_-]?secret\s*[:=]\s*["\x27]?[A-Za-z0-9_\-]{20,}'
+  'access[_-]?token\s*[:=]\s*["\x27]?[A-Za-z0-9_\-]{20,}'
+  'bearer\s+[A-Za-z0-9\-_.]{20,}'
+  # AWS
+  'AKIA[0-9A-Z]{16}'
+  'aws[_-]?secret[_-]?access[_-]?key'
+  # Private key headers
+  '-----BEGIN (RSA |EC |OPENSSH |DSA |PGP )?PRIVATE KEY'
+  # .env-style assignments with values (not just variable names)
+  '^[A-Z_]{3,}=.{8,}$'
+  # GitHub / generic tokens
+  'gh[ps]_[A-Za-z0-9]{36,}'
+  'ghp_[A-Za-z0-9]{36,}'
+)
+
+for file in $STAGED; do
+  [[ -f "$file" ]] || continue
+  for pattern in "${SECRET_PATTERNS[@]}"; do
+    if git diff --cached "$file" | grep -qiE "$pattern" 2>/dev/null; then
+      ERRORS+=("SECRET PATTERN in $file: matched /$pattern/")
+    fi
+  done
+done
+
+# ─── PASS 2: Personal / interaction-preference content ───────────────────────
+# The local-vs-shared boundary rule: interaction preferences (how Claude talks
+# to YOU) must never enter the shared brain. Facts, skills, and capabilities DO.
+#
+# Red flags: first-person preference statements, coach/1:1 content,
+# interaction style directives.
+
+PERSONAL_PATTERNS=(
+  # First-person preference statements typical of personal CLAUDE.md
+  'when (i|you) (say|write|ask|tell)'
+  'my (communication|preference|style|tone)'
+  '(do not|don'\''t) (address me|call me|use)'
+  'i prefer (you|claude) (to )?'
+  # 1:1 / coaching signals
+  '1:1|one.on.one|performance review|personal goal'
+  # Explicit personal-memory markers
+  'personal memory|local memory|private memory'
+  # Career / identity content
+  'my career|my resume|my cv\b|my linkedin'
+)
+
+for file in $STAGED; do
+  [[ -f "$file" ]] || continue
+  # Only scan markdown and text files, skip binaries
+  if file "$file" | grep -qiE 'text|markdown|json|yaml'; then
+    for pattern in "${PERSONAL_PATTERNS[@]}"; do
+      if git diff --cached "$file" | grep -qiE "$pattern" 2>/dev/null; then
+        ERRORS+=("PERSONAL CONTENT in $file: matched /$pattern/ -- this belongs in ~/.claude/memory/, not the shared brain")
+      fi
+    done
+  fi
+done
+
+# ─── PASS 3: Denylist literals ───────────────────────────────────────────────
+# Backstop for any enterprise/private identifiers that must never appear.
+# Add entries here when forking for a specific deployment.
+# (This list is intentionally generic in the public template.)
+
+DENYLIST_PATTERNS=(
+  # Add org-specific patterns here when deploying, e.g.:
+  # 'your-private-company-name'
+  # 'internal-project-codename'
+)
+
+for file in $STAGED; do
+  [[ -f "$file" ]] || continue
+  for pattern in "${DENYLIST_PATTERNS[@]}"; do
+    if [[ -n "$pattern" ]] && git diff --cached "$file" | grep -qiE "$pattern" 2>/dev/null; then
+      ERRORS+=("DENYLIST HIT in $file: matched /$pattern/")
+    fi
+  done
+done
+
+# ─── Result ──────────────────────────────────────────────────────────────────
+
+if [[ ${#ERRORS[@]} -gt 0 ]]; then
+  echo ""
+  echo "╔══════════════════════════════════════════════════════════════════╗"
+  echo "║  BRAIN PRE-COMMIT GUARD: commit blocked                         ║"
+  echo "╚══════════════════════════════════════════════════════════════════╝"
+  echo ""
+  for err in "${ERRORS[@]}"; do
+    echo "  ✗ $err"
+  done
+  echo ""
+  echo "  Fix the issues above, then re-stage and commit."
+  echo "  If this is a false positive, review the pattern in hooks/pre-commit."
+  echo "  push-to-brain refuses --no-verify. Fix the content, not the hook."
+  echo ""
+  exit 1
+fi
+
+exit 0

@@ -1,0 +1,14 @@
+{
+  "name": "your-team-brain",
+  "owner": {
+    "name": "Your Team"
+  },
+  "description": "Shared Claude context layer for teams and individuals: shared memory, perspectives, and session rituals distributed as one plugin.",
+  "plugins": [
+    {
+      "name": "brain",
+      "source": ".",
+      "description": "The brain: setup, sync, push/share, session rituals (handoff/log/reflect/wrap), and clean disconnect. Skills auto-discover from skills/. Version is intentionally omitted so every push is picked up at session start (freshness > tidiness, the context-bus model)."
+    }
+  ]
+}

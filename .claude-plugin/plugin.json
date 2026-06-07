@@ -1,0 +1,9 @@
+{
+  "name": "brain",
+  "displayName": "Team Brain",
+  "description": "Shared Claude context layer for teams and individuals. Skills: setup-brain, explain-brain, push-to-brain, share-with-brain, sync-with-brain, disconnect-brain, handoff, log, reflect. Command: /wrap.",
+  "author": {
+    "name": "Your Team"
+  },
+  "license": "MIT"
+}
