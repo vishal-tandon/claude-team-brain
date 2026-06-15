@@ -356,5 +356,21 @@ with NO errors, NO permission stop-and-go, NO improvisation:
 Path 2 (owner) is VALIDATED end to end. Still unproven live: joiner connect (F3 joiner
 side), Path 1 (paste-a-link, incl the fork branch), and the original promise, a NEW skill
 pushed to the brain auto-installing on a user's next session via autoUpdate.
+
+## autoUpdate propagation: CONFIRMED LIVE (2026-06-15) — the original bug is fixed
+
+Pushed a new `hello-brain` skill to the brain AFTER a completed install. Findings:
+- The session that ran the autoUpdate pulled the files (cache advanced to the new commit
+  `7b9f5c6`, `hello-brain` present in both the plugin cache and the clone) but did NOT have
+  the skill active in that same run, its skill registry was already built. Casual reply, no
+  trigger.
+- The NEXT fresh session had `brain:hello-brain` registered and ran it, printing the marker
+  line. autoUpdate propagation works end to end.
+
+So the core promise holds: a skill pushed to the brain reaches every user automatically.
+The only nuance is the one-session activation lag (F8): the session that pulls the update
+is not the one that gets the skill live; the session after it is. Worth stating plainly in
+explain-brain / the close so users are not surprised. This is the bug that started the
+whole effort, now closed.
 </content>
 </invoke>
