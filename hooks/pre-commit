@@ -64,10 +64,15 @@ done
 # interaction style directives.
 
 PERSONAL_PATTERNS=(
-  # First-person preference statements typical of personal CLAUDE.md
-  'when (i|you) (say|write|ask|tell)'
+  # First-person preference statements typical of personal CLAUDE.md.
+  # First-person only ("when I say"): second-person ("when you ask") is normal
+  # instruction prose and was a false-positive source.
+  'when i (say|write|ask|tell)'
   'my (communication|preference|style|tone)'
-  '(do not|don'\''t) (address me|call me|use)'
+  # Personal-address directives. Bare "use" was removed: "do not use X" is
+  # ubiquitous instruction prose. Require a personal object.
+  '(do not|don'\''t) (address me|call me)'
+  '(do not|don'\''t) use my (name|handle|preferred)'
   'i prefer (you|claude) (to )?'
   # 1:1 / coaching signals
   '1:1|one.on.one|performance review|personal goal'
@@ -77,8 +82,22 @@ PERSONAL_PATTERNS=(
   'my career|my resume|my cv\b|my linkedin'
 )
 
+# Paths exempt from PASS 2 ONLY. Skill and command files are written in
+# second-person imperative voice ("when you ask", "do not use X") by nature, so
+# the personal-preference scan produces false positives that hard-block the
+# skill-sharing workflow (push-to-brain refuses --no-verify, so there is no
+# escape hatch). Secrets (PASS 1) and denylist literals (PASS 3) STILL scan every
+# file including these.
+is_pass2_exempt() {
+  case "$1" in
+    skills/*|commands/*) return 0 ;;
+    *) return 1 ;;
+  esac
+}
+
 for file in $STAGED; do
   [[ -f "$file" ]] || continue
+  is_pass2_exempt "$file" && continue
   # Only scan markdown and text files, skip binaries
   if file "$file" | grep -qiE 'text|markdown|json|yaml'; then
     for pattern in "${PERSONAL_PATTERNS[@]}"; do

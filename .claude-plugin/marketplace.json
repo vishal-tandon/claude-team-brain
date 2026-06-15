@@ -8,7 +8,9 @@
     {
       "name": "brain",
       "source": ".",
-      "description": "The brain: setup, sync, push/share, session rituals (handoff/log/reflect/wrap), and clean disconnect. Skills auto-discover from skills/. Version is intentionally omitted so every push is picked up at session start (freshness > tidiness, the context-bus model)."
+      "skills": "./skills",
+      "commands": "./commands",
+      "description": "The brain: setup, sync, push/share, session rituals (handoff/log/reflect/wrap), and clean disconnect. Skills and commands are declared explicitly (./skills, ./commands) so the executable surface is unambiguous. source is '.' because the manifest lives at the repo root; the memory dirs (shared-memory/, perspectives/, project-memory/) that get copied into the plugin cache alongside the skills are INERT there and must never be @import'd from the cache, context is always imported from the git clone. Version is intentionally omitted so every commit counts as a newer version; setup-brain enables autoUpdate on this marketplace so those commits (new skills included) actually install at session start. Version omission defines 'newer'; autoUpdate applies it."
     }
   ]
 }

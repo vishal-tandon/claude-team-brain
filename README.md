@@ -132,10 +132,14 @@ There are two ways in, and `setup-brain` detects which one you are.
 2. **Edit `brain.config.json`** with your name, marketplace slug, repo, and preferences.
 3. **Paste the repo link into Claude** and say you want to set up your brain. Claude
    clones it and runs `setup-brain`, which checks your system is ready, wires the
-   `@import`, installs the skills, propagates your config into the manifest, and turns on
-   the pre-commit guard. About two to three minutes.
+   `@import`, installs the skills, enables marketplace auto-update so future skills install
+   themselves, propagates your config into the manifest, and turns on the pre-commit guard.
+   About two to three minutes.
 
-You finish with a live brain and a prompt to bring in your other devices or your team.
+You finish with a live brain and a prompt to bring in your other devices or your team. The
+repo is private by default, so teammates need access before the link works: just tell Claude
+their GitHub handles and it adds them as collaborators (or makes the repo internal for your
+whole org). No manual GitHub admin.
 
 ### Joiner: connecting to a brain that already exists
 
@@ -144,6 +148,10 @@ A teammate, or you on a second device.
 1. **Paste the repo link into Claude** and say you want to connect to the brain.
 2. Claude clones it and runs `setup-brain`, which sees a populated brain, switches to the
    joiner flow, pulls the context, and installs the skills. No config edit needed.
+
+If the repo is private and you do not have access yet, Claude tells you exactly that (not a
+raw git error) and what to ask the owner for. Once they add your handle, run it again and it
+picks up where it left off.
 
 In both cases the headline instruction is the same: **paste the repo into Claude and let
 it handle it.** Prefer to clone yourself first? Do that, then point Claude at the folder.
@@ -166,8 +174,14 @@ Both paths converge on `setup-brain`.
 - **Sync and drift**: `sync-with-brain` pulls context, refreshes skills, and reports in
   one line if your clone and your installed skills have drifted apart, with a one-click
   fix.
-- **Auto-update skills**: the plugin ships without a pinned version, so every push to the
-  repo is picked up as the newest version at the next session start. Freshness by default.
+- **Auto-update skills**: the plugin ships without a pinned version, so every commit counts
+  as the newest version, and `setup-brain` turns on `autoUpdate` for the marketplace so
+  those commits actually install at the next session start. That flag is what makes a
+  pushed skill reach everyone, third-party marketplaces have auto-update off by default, so
+  without it new skills would never arrive. Freshness by default, once the flag is set. One
+  caveat: updates land at the NEXT session start, not mid-session, including for the person
+  who wrote the skill. Open a fresh session to pick up a just-pushed skill (or run
+  `/plugin marketplace update` then `/reload-plugins` to grab it in place).
 
 ---
 

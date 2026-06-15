@@ -27,7 +27,7 @@ GitHub repo:
 | Materialization | What it holds | Kept fresh by | Stable path? |
 |---|---|---|---|
 | **Clone** (`~/.claude/brain/`) | CLAUDE.md + memory indexes (the `@import` context) | SessionStart `git pull` (or `sync-with-brain`) | Yes, it is your clone |
-| **Plugin cache** (`~/.claude/plugins/cache/...`) | Skills + commands | marketplace auto-update at startup (version-less plugin, every commit is latest) | No, version dir changes on update |
+| **Plugin cache** (`~/.claude/plugins/cache/...`) | Skills + commands | marketplace auto-update at startup, gated on the `autoUpdate` flag setup-brain writes (version-less plugin, so every commit is latest once the flag applies it) | No, version dir changes on update |
 
 This split is deliberate. Each mechanism does what it is good at:
 
@@ -38,17 +38,32 @@ This split is deliberate. Each mechanism does what it is good at:
 **Critical rule:** never `@import` a path inside the plugin cache. That path
 moves on every skill update. Context is always imported from the clone.
 
+**Deployment note (sandboxed setups):** the clone defaults to `~/.claude/brain`.
+If your environment confines Claude to a single project directory (a security
+sandbox, an allowlist of writable paths), `~/.claude/brain` may sit outside it,
+so brain skills that write to the clone will prompt or be denied. Either relocate
+the clone inside the sandbox (setup-brain records wherever it actually lives via
+the context-import line, so a non-default path works everywhere) or add
+`~/.claude/brain` to the writable allowlist.
+
 ### The riskiest assumption
 
-A single repo serving both materializations means the two local copies can
-drift: SessionStart pull can fail silently while marketplace auto-update
-succeeds. A skill could then reference memory that the context copy does not
-have yet.
+Two distinct drift modes exist. First: the two local copies can diverge because
+SessionStart pull can fail silently while marketplace auto-update succeeds, so a
+skill could reference memory the context copy does not have yet. Second, and more
+dangerous: marketplace auto-update is OFF by default for third-party marketplaces,
+so if the `autoUpdate` flag is not set (or gets removed), new skills never reach
+the user at all. Version omission alone does not fix this; it only defines what
+counts as a newer version. `autoUpdate` is what makes Claude Code apply it at
+session start. setup-brain writes that flag, and it is load-bearing: without it
+the whole "freshness by default" promise is false.
 
 `sync-with-brain` is the dedicated drift detector. It reads clone-commit vs
-origin, plugin version, and `@import` presence, reports staleness in one line,
-and offers a one-click resync. Run it when something feels stale, or
-add it to your SessionStart sequence.
+origin, plugin version, `@import` presence, and the `autoUpdate` flag, reports
+staleness in one line, and offers a one-click resync. The autoUpdate check is the
+root-cause check: a missing flag is the single most common reason a pushed skill
+never shows up for a teammate. Run it when something feels stale, or add it to
+your SessionStart sequence.
 
 ---
 
@@ -129,9 +144,14 @@ To enable governed mode:
 
 Skills are distributed via Claude Code's native plugin marketplace
 (`/plugin marketplace add owner/repo`), not symlinks. The plugin ships with no
-pinned `version`, so Claude Code treats each new commit as the latest version
-and refreshes skills at session start. Freshness by default: a push to the repo
-is live for everyone on their next session, no version bump required.
+pinned `version`, so Claude Code treats each new commit as the latest version.
+That alone is not enough: third-party marketplaces have auto-update OFF by
+default, so setup-brain writes `autoUpdate: true` for this marketplace into the
+user's settings. With the flag set, Claude Code refreshes skills at session
+start. Freshness by default: a push to the repo is live for everyone on their
+next session, no version bump required. Without the flag, new skills never
+install on their own, which is exactly the failure `sync-with-brain` check E
+diagnoses.
 
 Skills are grouped by purpose:
 
@@ -140,8 +160,9 @@ Skills are grouped by purpose:
 **Session rituals:** `handoff`, `log`, `reflect`, `wrap` (command)
 
 `setup-brain` wires both materializations in one flow after clone: adds the
-marketplace, installs skills, writes the `@import` to your CLAUDE.md, and
-optionally adds the SessionStart pull hook.
+marketplace, installs skills, enables `autoUpdate` for the marketplace so new
+skills install themselves, writes the `@import` to your CLAUDE.md, and optionally
+adds the SessionStart pull hook for the context clone.
 
 ---
 
