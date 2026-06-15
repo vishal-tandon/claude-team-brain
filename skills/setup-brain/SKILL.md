@@ -44,11 +44,18 @@ Either way, once the repo is on disk the rest is identical.
   open `brain.config.json` or any JSON. Derive everything derivable from the git remote and
   `gh`. Ask only the two or three things that are genuine choices, in plain language, with a
   default already picked. Then WRITE the config yourself.
-- **Trust after the principle is named.** The user said "set up my brain." That is the
-  consent. Do not re-ask permission for every routine write. Surface only real choices or
-  genuine forks (an existing skill conflict, an access failure).
-- **Information does the work.** Each step states what happened and why it is safe inline,
-  so trust comes from the message, not from a permission gate.
+- **One consent, then run end to end.** The user said "set up my brain." That is consent
+  for the whole install. After the short interview, state in plain language the handful of
+  things you are about to do, then do them all in one pass. Do NOT stop for per-step
+  approval. Surface only genuine forks: an access failure, a real conflict, a decision a
+  human must make. Stop-start permission prompts are the single thing that makes setup feel
+  technical and slow, avoid them.
+- **Plain language, hide the machinery.** Narrate the outcomes the user cares about, never
+  the mechanism. Say "Saving your settings", "Installing the skills", "Making sure you
+  always get the latest automatically", "Done, your brain's live." Do NOT put file paths,
+  JSON keys, flag names, "marketplace manifest", "@import", "autoUpdate", "propagate", or
+  CLI internals in what you SHOW the user. Keep all of that in your own reasoning. The user
+  wants to know what is happening at a high level, not how it works.
 - **Self-heal on re-run.** Re-running must be safe and idempotent. On a brain that is
   already localised, skip the interview, inventory the wiring, and repair only the gaps.
   "Fix my brain" and "set up my brain" land in the same skill.
@@ -168,18 +175,19 @@ Set the voice:
 Render the path upfront so the user sees it before any change. Use TodoWrite. Owner first
 standup:
 
-1. Pre-flight: Git, `gh` installed, `gh` authenticated, access to the repo
-2. Localise: name it, solo or team (I write the config, you don't touch a file)
-3. Wire the context import so the brain loads every session
-4. Install the skills via the marketplace
-5. Enable auto-update so new skills install themselves on later sessions
-6. (Optional) Add a SessionStart hook to keep context current
-7. Activate the pre-commit guard
-8. (Owner) Offer to bring teammates in
-9. Hand off to the discovery session
+1. Check your setup is ready
+2. Name your brain, and tell me solo or team (I handle the rest)
+3. Connect the brain to your sessions
+4. Install the brain's skills
+5. Keep your skills updating automatically
+6. Keep your shared context updating automatically
+7. Turn on the guard that keeps private notes out of the shared brain
+8. (If a team) Bring your teammates in
+9. Point you to your first real session
 
-For a joiner or a self-heal re-run, drop step 2 (localise) and step 8, and reframe the rest
-as "check and repair."
+Keep these items in plain language like this, no jargon, this list is shown to the user.
+For a joiner or a self-heal re-run, drop step 2 and step 8, and reframe the rest as
+"check and repair."
 
 ## Step 4: Pre-flight (silent if all pass)
 
@@ -271,9 +279,13 @@ add is already valid.
 
 ## Step 7: Wire everything (consent named once, inline why-safe)
 
-Make these changes in order. Each carries a one-line "why this is safe" inline. None touch
-personal memory. On a self-heal re-run, check each first and apply only the missing or
-broken ones.
+Make these changes in order, in ONE pass, without stopping to ask between them (the consent
+was given). None touch personal memory. On a self-heal re-run, check each first and apply
+only the missing or broken ones.
+
+The "why safe" line under each item is for YOUR reasoning, not the user. To the user, narrate
+plainly: "Connecting the brain to your sessions", "Installing the skills", "Setting it to
+keep itself updated", "Turning on the privacy guard". Do not read the mechanism aloud.
 
 1. **Add the context-import line** to `~/.claude/CLAUDE.md`:
    `@<clonePath>/CLAUDE.md`
@@ -317,13 +329,18 @@ broken ones.
    Why safe: it only pulls and updates the brain plugin; it touches no other marketplace and
    never pushes.
 
-4. **(Optional, ask) SessionStart context + drift hook.** A real choice, so ask. If
-   accepted, add a SessionStart hook to `~/.claude/settings.json` that runs
-   `git -C <clonePath> pull` (keeps the `@import` context clone current) and a quiet
-   `sync-with-brain` drift check (surfaces one line only if skills or context are stale, so
-   an autoUpdate failure is never silent). If `syncMode` is `auto`, recommend it. If
-   `manual`, skip and mention `sync-with-brain` covers it on demand.
-   Why safe: it only pulls and reports; it never pushes or overwrites your local edits.
+4. **SessionStart context + drift hook (default ON, do not ask).** Add a SessionStart hook
+   to `~/.claude/settings.json` that runs `git -C <clonePath> pull` (keeps the context
+   clone current) and a quiet `sync-with-brain` drift check (surfaces one line only if
+   something is stale, so an autoUpdate failure is never silent). This is what makes "you
+   never think about it" actually true, so install it by default for `auto` and `reminded`.
+   The ONLY exception is `syncMode: manual`, where the user explicitly chose to control
+   sync: skip it there and mention `sync-with-brain` pulls on demand. Do not present this as
+   an optional question, it is core to the always-current promise. Just say, plainly, "I'll
+   keep your brain updating itself in the background."
+   Why (your reasoning, not the user): autoUpdate refreshes skills at session start; this
+   hook refreshes context and makes any failure visible. Without it, context only updates
+   when someone manually syncs, which breaks the promise.
 
 5. **Activate the pre-commit guard:** `git -C <clonePath> config core.hooksPath hooks`.
    Why safe: it runs the repo's secret and personal-content scan before any commit, so
@@ -332,19 +349,29 @@ broken ones.
 
 ## Step 8: Owner only, bring teammates in (close the private-repo gap)
 
-A private brain is invisible to teammates until they have repo access. Do not leave the
-owner to discover this when a joiner hits a 404. Offer it here:
+A private brain is invisible to teammates until they have repo access. Getting them in is
+TWO things, and the user needs to understand both: first you GRANT access, then they INSTALL
+by pasting a link. The link alone does nothing for a private repo until access exists, that
+is the part that confuses people, so make it explicit. Offer it here:
 
-> Want to bring teammates in now? Tell me their GitHub handles and I'll add them as
-> collaborators so the repo link actually works for them. Or I can make the repo internal
-> if your whole org should have it.
+> Want to bring teammates in now? Give me their GitHub handles, I'll add them to the repo
+> and hand you a ready-to-send message for each. (Or if your whole org should have it, I can
+> make the repo internal so any handle works without adding people one by one.)
 
-- On handles: `gh api -X PUT repos/<repo>/collaborators/<handle>` per teammate. Report who
-  was added.
-- On "make it internal/public": `gh repo edit <repo> --visibility internal` (confirm once,
-  this widens who can see the brain).
-- On "later": one line, "When you're ready, just tell me their handles." Note that sending
-  the bare repo link alone will not work until access is granted.
+- **On handles (grant access):** for each, `gh api -X PUT repos/<repo>/collaborators/<handle>`.
+  This sends a GitHub collaborator invite. An OUTSIDE collaborator must accept the emailed
+  invite before access works (org members with access are immediate). Tell the user this, so
+  they understand why a teammate might still see "no access" until they click accept.
+- **Then hand the user a copy-paste message per teammate**, plain, no jargon:
+  > "You've got access to our team brain. Paste this into your Claude: Connect me to this
+  > brain: `<repo link>`"
+  That triggers the joiner install on the teammate's side (Path 1). They never edit a file
+  either.
+- **On "make it internal/public":** `gh repo edit <repo> --visibility internal` (confirm
+  once; this widens who can see the brain). After this, the link alone is enough, no
+  per-person add.
+- **On "later":** one line. Be clear that a teammate cannot just be sent the link cold for a
+  private brain; access has to be granted first.
 
 Skip for joiners and self-heal.
 
