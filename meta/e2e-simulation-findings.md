@@ -407,8 +407,33 @@ spec tightening: make the self-heal close mandatory when repairing an already-lo
 
 Full loop proven: install -> use -> push new skill (auto-arrives) -> disconnect -> reconnect.
 
-Still unproven live (secondary): joiner connect (F3 joiner side, needs a 2nd identity),
-Path 1 paste-a-link incl the fork branch, governed mode, share-with-brain / sync-with-brain
-drift.
+## Path 1 (paste-a-link): CONFIRMED LIVE (2026-06-15)
+
+Pasted "install this github project for me: <link>" into a cold Claude in a NEUTRAL folder
+(no clone, no brain CLAUDE.md loaded). The riskiest bootstrap, and it passed:
+- Cold Claude ran `git clone` on the link, then loaded the cloned repo's CLAUDE.md, then
+  followed its bootstrap note to `skills/setup-brain/SKILL.md`. The clone-then-discover
+  chain worked with nothing but the link.
+- The join-vs-own disambiguation (Step 0) was auto-resolved by owner-permission detection
+  (link owner == gh handle, ADMIN), so it skipped straight to owner standup, one fewer
+  question.
+- Then the full proven owner flow: config written + pushed before the marketplace add,
+  install first try, autoUpdate + hook + guard, teammate added, clean close.
+
+Trivia: the agent wrote a `brana-e2e` typo in the import line and self-corrected it
+(cosmetic, model-level, not a spec issue). The `gh repo fork` sub-branch (a NON-owned
+template link the user wants to make their own) is still untested, here the link was the
+user's own repo, so it went owner-direct, not via fork.
+
+## Final live-validation scorecard (2026-06-15)
+- Path 2 owner install: PASS
+- Path 1 paste-a-link install (incl cold bootstrap): PASS
+- autoUpdate propagation of a newly pushed skill (the original bug): PASS
+- disconnect-brain clean uninstall incl F1 import removal: PASS
+- self-heal / reconnect (idempotent re-run): PASS
+
+Still unproven live (secondary, non-blocking): joiner connect by a non-owner (needs a 2nd
+identity / the invited collaborator accepting), the Path 1 gh-fork sub-branch, governed
+mode, share-with-brain / sync-with-brain drift.
 </content>
 </invoke>
