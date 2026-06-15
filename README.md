@@ -52,6 +52,10 @@ Claude reads the repo, runs the setup itself, and asks only what it cannot guess
 edit a file. The exact wording does not matter, anything close ("I just cloned this, set it
 up") works.
 
+**Tip for a smooth run:** when the Claude session starts, press **Shift+Tab** to turn on
+"accept edits." Setup makes several small changes in a row, and this lets it wire everything
+in one pass instead of pausing to ask you to approve each step.
+
 ---
 
 ## Why I built this
