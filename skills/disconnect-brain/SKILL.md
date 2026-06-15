@@ -258,6 +258,10 @@ Adjust the "Removed" list based on what was actually removed (vs skipped).
 - **Corrupting the settings file.** Read the full settings file, parse it, make
   the targeted removal, write it back. Never use sed or string replacement on JSON
   files. It risks silently mangling syntax.
+- **Editing before reading.** Always Read `~/.claude/settings.json` (and `CLAUDE.md`)
+  before writing to them. The editing tools require a prior read of an existing file;
+  skipping it produces an avoidable "error writing file" that makes disconnect look
+  broken before it self-recovers.
 - **Removing more than the four targeted components.** This skill has a narrow
   scope: these four integration points. Do not clean up or reorganize anything
   else in the user's Claude config.

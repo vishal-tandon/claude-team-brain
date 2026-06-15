@@ -372,5 +372,27 @@ The only nuance is the one-session activation lag (F8): the session that pulls t
 is not the one that gets the skill live; the session after it is. Worth stating plainly in
 explain-brain / the close so users are not surprised. This is the bug that started the
 whole effort, now closed.
+
+## disconnect-brain: CONFIRMED LIVE (2026-06-15), F1 disconnect side validated
+
+Ran `disconnect-brain` on the installed brain. Clean uninstall:
+- Inventory FOUND the bare-`@` import line (`@/tmp/.../CLAUDE.md`) and removed it. This is
+  the direct proof of the F1 fix: the old detector greped a literal `@import` token and
+  would have missed this line, silently leaving the brain loading after a "clean" uninstall.
+- Removed the `extraKnownMarketplaces` block (incl `autoUpdate`), `enabledPlugins`, and the
+  SessionStart hook from settings.json (back to `{}`); unset `core.hooksPath`; left the
+  clone on disk.
+
+### F18: read-before-edit hiccup in disconnect-brain (minor cosmetic)
+Same class as F17: `Write(settings.json)` errored ("file must be read first"), then
+self-recovered. FIXED: added a read-before-edit pitfall to disconnect-brain.
+
+## Live validation scorecard (2026-06-15)
+- Path 2 owner install, start to close: PASS
+- autoUpdate propagation of a new skill (the original bug): PASS (one-session activation lag)
+- disconnect-brain clean uninstall incl F1 import removal: PASS
+
+Still unproven live: joiner connect (F3 joiner side), Path 1 paste-a-link incl the fork
+branch, self-heal re-run, governed mode, share-with-brain / sync-with-brain drift.
 </content>
 </invoke>
