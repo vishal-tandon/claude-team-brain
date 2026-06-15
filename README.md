@@ -11,6 +11,29 @@ edit a file.
 
 ---
 
+## Quickstart
+
+**Standing up your own brain (solo or team owner):**
+
+1. Fork this repo to your GitHub account (private is fine), and clone your fork.
+2. Open Claude Code in the cloned folder.
+3. Say:
+   > set up my brain
+
+**Joining a brain a teammate already has:**
+
+1. Clone their repo (ask them to add you as a collaborator if it is private).
+2. Open Claude Code in the cloned folder.
+3. Say:
+   > connect me to the brain
+
+That is the whole install. Claude reads the repo, runs the setup itself, and asks you only
+the things it cannot guess (a name, solo or team). You never edit a file or run a Git
+command. The exact wording does not matter, anything close ("I just cloned this, set it up")
+works.
+
+---
+
 ## Why I built this
 
 I lead a design team, and everyone on it uses Claude. The problem showed up fast: each
