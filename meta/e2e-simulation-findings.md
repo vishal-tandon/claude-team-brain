@@ -387,12 +387,28 @@ Ran `disconnect-brain` on the installed brain. Clean uninstall:
 Same class as F17: `Write(settings.json)` errored ("file must be read first"), then
 self-recovered. FIXED: added a read-before-edit pitfall to disconnect-brain.
 
-## Live validation scorecard (2026-06-15)
+## self-heal / reconnect: CONFIRMED LIVE (2026-06-15)
+
+Re-ran `set up my brain` on the disconnected-but-cloned sandbox. Correctly detected the
+already-localised config as a returning-owner / self-heal path, SKIPPED the interview, and
+repaired all wiring (import line, plugin re-enable, autoUpdate, SessionStart hook, guard).
+Idempotency validated: running setup again safely reconnects.
+
+### F19: self-heal used the owner-standup close, not the tailored self-heal close (cosmetic)
+The skill defines a distinct self-heal close ("Reconnected: restored X, Y, Z"); the agent
+used the full first-standup close instead. Harmless, just not the tightest message. Optional
+spec tightening: make the self-heal close mandatory when repairing an already-localised brain.
+
+## Live validation scorecard (2026-06-15) — core lifecycle PROVEN
 - Path 2 owner install, start to close: PASS
 - autoUpdate propagation of a new skill (the original bug): PASS (one-session activation lag)
 - disconnect-brain clean uninstall incl F1 import removal: PASS
+- self-heal / reconnect (idempotent re-run): PASS
 
-Still unproven live: joiner connect (F3 joiner side), Path 1 paste-a-link incl the fork
-branch, self-heal re-run, governed mode, share-with-brain / sync-with-brain drift.
+Full loop proven: install -> use -> push new skill (auto-arrives) -> disconnect -> reconnect.
+
+Still unproven live (secondary): joiner connect (F3 joiner side, needs a 2nd identity),
+Path 1 paste-a-link incl the fork branch, governed mode, share-with-brain / sync-with-brain
+drift.
 </content>
 </invoke>
