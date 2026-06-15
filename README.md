@@ -5,8 +5,9 @@ session, every device, and every teammate the same memory, the same perspectives
 the same skills, without anyone touching Git directly.
 
 Solo across your own machines is a first-class case here, equal to a team. The whole
-thing stands up in a few minutes: fork it, edit one config file, paste the repo link
-into Claude, and let Claude do the rest.
+thing stands up in a few minutes: fork it, then tell Claude to set it up. Claude asks
+you a couple of plain questions, writes its own config, and wires everything. You never
+edit a file.
 
 ---
 
@@ -80,8 +81,13 @@ leaks personal content into the shared repo by accident.
 
 ## How to adapt it
 
-This repo is a **template**. You make it yours by forking and editing one file,
-`brain.config.json`:
+This repo is a **template**, and making it yours takes no file editing. You fork it, then
+tell Claude to set it up. `setup-brain` derives what it can from your fork (the repo, the
+marketplace name) and asks you the two things it cannot guess (a name, and solo or team),
+then **writes `brain.config.json` for you**. You never open it.
+
+The config it writes ends up looking like this. You do not author it; it is shown so you
+know what is under the hood:
 
 ```json
 {
@@ -96,20 +102,20 @@ This repo is a **template**. You make it yours by forking and editing one file,
 }
 ```
 
-- **`name`** is the human label used in onboarding copy.
-- **`marketplaceName`** / **`repo`** point the skills at your fork. `setup-brain`
-  propagates `marketplaceName` into the marketplace manifest for you, so editing this one
-  file is enough.
-- **`governance`**: `open` (push straight to the branch, best for solo and high-trust
-  teams) or `governed` (every push opens a PR for human review). See
-  [docs/governed-mode.md](./docs/governed-mode.md).
-- **`syncMode`**: `auto` (push on change, pull on start, ideal for solo cross-device),
-  `reminded` (nudge cadence, the team default), or `manual` (you control sync).
-- **`authValidation`**: `null` lets any authenticated `gh` account in. Enterprise forks
-  can set a regex to restrict to corporate handles.
+- **`name`** is the human label used in onboarding copy (Claude asks you for it).
+- **`marketplaceName`** / **`repo`** point the skills at your fork. Claude derives both from
+  your fork's git remote and propagates `marketplaceName` into the marketplace manifest.
+- **`governance`**: `open` (push straight to the branch, the default) or `governed` (every
+  push opens a PR for human review). Defaults to `open`; just tell Claude "switch my brain
+  to governed mode" any time. See [docs/governed-mode.md](./docs/governed-mode.md).
+- **`syncMode`**: `auto`, `reminded`, or `manual`. Set from your solo/team answer; change it
+  by telling Claude.
+- **`authValidation`**: `null` lets any authenticated `gh` account in. Enterprise forks can
+  restrict to corporate handles; ask Claude to set it.
 
-Every skill reads its constants from this file. There are no hardcoded paths, repos, or
-org names anywhere else. Change the config, and the whole template retargets to you.
+Every skill reads its constants from this file, and Claude maintains it. There are no
+hardcoded paths, repos, or org names anywhere else. To change anything later, you tell
+Claude in plain words; you never hand-edit.
 
 Beyond config, the brain has three clean extension points: add memory and perspectives,
 add skills to the same plugin, or point the brain at other repos through a shared-memory
@@ -128,13 +134,13 @@ There are two ways in, and `setup-brain` detects which one you are.
 
 ### Owner: standing up a new brain
 
-1. **Fork this repo** to `your-org/your-brain` on GitHub (private by default).
-2. **Edit `brain.config.json`** with your name, marketplace slug, repo, and preferences.
-3. **Paste the repo link into Claude** and say you want to set up your brain. Claude
-   clones it and runs `setup-brain`, which checks your system is ready, wires the
-   `@import`, installs the skills, enables marketplace auto-update so future skills install
-   themselves, propagates your config into the manifest, and turns on the pre-commit guard.
-   About two to three minutes.
+1. **Fork this repo** to your own GitHub account (private by default).
+2. **Open Claude in the cloned folder (or paste the repo link) and say "set up my brain."**
+   Claude runs `setup-brain`, which checks your system is ready, derives your repo and
+   marketplace name, asks you for a name and solo-or-team, writes your config, wires the
+   context import, installs the skills, enables marketplace auto-update so future skills
+   install themselves, propagates the manifest, and turns on the pre-commit guard. It asks
+   you nothing technical. About two to three minutes.
 
 You finish with a live brain and a prompt to bring in your other devices or your team. The
 repo is private by default, so teammates need access before the link works: just tell Claude
