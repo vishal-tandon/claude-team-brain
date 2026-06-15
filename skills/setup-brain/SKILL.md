@@ -56,6 +56,10 @@ Either way, once the repo is on disk the rest is identical.
   JSON keys, flag names, "marketplace manifest", "@import", "autoUpdate", "propagate", or
   CLI internals in what you SHOW the user. Keep all of that in your own reasoning. The user
   wants to know what is happening at a high level, not how it works.
+- **Read before you edit.** Read `brain.config.json` and `.claude-plugin/marketplace.json`
+  (and `~/.claude/settings.json`) before writing to them. The editing tools require a prior
+  read of an existing file, skipping it produces avoidable "file must be read first" / write
+  errors that make setup look broken.
 - **Self-heal on re-run.** Re-running must be safe and idempotent. On a brain that is
   already localised, skip the interview, inventory the wiring, and repair only the gaps.
   "Fix my brain" and "set up my brain" land in the same skill.
@@ -329,18 +333,20 @@ keep itself updated", "Turning on the privacy guard". Do not read the mechanism 
    Why safe: it only pulls and updates the brain plugin; it touches no other marketplace and
    never pushes.
 
-4. **SessionStart context + drift hook (default ON, do not ask).** Add a SessionStart hook
-   to `~/.claude/settings.json` that runs `git -C <clonePath> pull` (keeps the context
-   clone current) and a quiet `sync-with-brain` drift check (surfaces one line only if
-   something is stale, so an autoUpdate failure is never silent). This is what makes "you
-   never think about it" actually true, so install it by default for `auto` and `reminded`.
-   The ONLY exception is `syncMode: manual`, where the user explicitly chose to control
-   sync: skip it there and mention `sync-with-brain` pulls on demand. Do not present this as
-   an optional question, it is core to the always-current promise. Just say, plainly, "I'll
-   keep your brain updating itself in the background."
+4. **SessionStart auto-pull hook (default ON, do not ask).** Add a SessionStart hook to
+   `~/.claude/settings.json` that runs `git -C <clonePath> pull --quiet` so the context
+   clone is current at the start of every session. This is what makes "always up to date"
+   true without thinking, so install it by default for `auto` and `reminded`. The ONLY
+   exception is `syncMode: manual` (the user explicitly chose to control sync): skip it
+   there and mention `sync-with-brain` pulls on demand. Do not present this as an optional
+   question, it is core to the promise. Say it plainly: "I'll keep your brain updating
+   itself in the background."
+   Important: a SessionStart hook is a SHELL command, it CANNOT run a Claude skill, so it
+   does the `git pull` only. Surfacing drift or an autoUpdate failure is `sync-with-brain`'s
+   job when it is run (manually or via a reminded nudge). Do not write a hook that claims to
+   run a skill-level drift check, it cannot.
    Why (your reasoning, not the user): autoUpdate refreshes skills at session start; this
-   hook refreshes context and makes any failure visible. Without it, context only updates
-   when someone manually syncs, which breaks the promise.
+   hook refreshes context. Together they keep both current.
 
 5. **Activate the pre-commit guard:** `git -C <clonePath> config core.hooksPath hooks`.
    Why safe: it runs the repo's secret and personal-content scan before any commit, so

@@ -52,9 +52,11 @@ Claude reads the repo, runs the setup itself, and asks only what it cannot guess
 edit a file. The exact wording does not matter, anything close ("I just cloned this, set it
 up") works.
 
-**Tip for a smooth run:** when the Claude session starts, press **Shift+Tab** to turn on
-"accept edits." Setup makes several small changes in a row, and this lets it wire everything
-in one pass instead of pausing to ask you to approve each step.
+**Tip for a smooth run:** the repo ships a small permission allowlist
+(`.claude/settings.json`) so the setup commands (Git, the GitHub CLI, plugin install) run
+without asking you to approve each one. You may get a single prompt to trust the folder's
+settings on first open, say yes. You can also press **Shift+Tab** to auto-accept file edits.
+Together these let setup wire everything in one pass instead of stopping at each step.
 
 ---
 

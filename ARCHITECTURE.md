@@ -161,8 +161,17 @@ Skills are grouped by purpose:
 
 `setup-brain` wires both materializations in one flow after clone: adds the
 marketplace, installs skills, enables `autoUpdate` for the marketplace so new
-skills install themselves, writes the `@import` to your CLAUDE.md, and optionally
-adds the SessionStart pull hook for the context clone.
+skills install themselves, writes the `@import` to your CLAUDE.md, and adds the
+SessionStart `git pull` hook for the context clone (default on, except `manual`
+sync). The hook is a shell command (pull only); it cannot run a Claude skill, so
+drift and autoUpdate-failure surfacing stays with `sync-with-brain`.
+
+The repo ships `.claude/settings.json` with a scoped command allowlist
+(`Bash(git:*)`, `Bash(gh:*)`, `Bash(claude plugin:*)`) so setup, and ongoing
+push/sync, run without a permission prompt at every command. It is project-scoped
+(only this brain's folder) and covers exactly the command families the brain uses;
+nothing destructive is granted that the user would not already run by hand here.
+Shift+Tab "accept edits" covers the file writes; the allowlist covers the Bash.
 
 ---
 

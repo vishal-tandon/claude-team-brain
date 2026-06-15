@@ -313,5 +313,30 @@ only recovered by improvising this push mid-install; the skill now does it proac
 
 Lesson: doc-only verification passed `source: "."` and an optional push; the live smoke
 run caught both. Smoke test against the real CLI is the completion gate, not docs.
+
+## Live test results, round 2 (2026-06-15, Path 2, after UX + F13/F14 fixes)
+
+Re-ran Path 2 cold. F13/F14 confirmed fixed: the manifest `source.repo` + name were
+written and PUSHED before any marketplace add, no schema error. Plain-language narration
+and default-on hook both landed. Three more findings:
+
+### F15: Bash steps still prompt one-by-one; accept-edits does not cover them  (HIGH UX)
+Shift+Tab "accept edits" auto-accepts file writes only, NOT Bash. So every `git`, `gh`,
+and `claude plugin` command in setup still triggered a permission prompt, the stop-and-go
+the user flagged. FIXED: the repo now ships `.claude/settings.json` with a scoped
+permission allowlist (`Bash(git:*)`, `Bash(gh:*)`, `Bash(claude plugin:*)`), so once the
+user trusts the folder, setup's commands run without per-command prompts. README tip
+updated to explain both layers (allowlist for commands, Shift+Tab for edits).
+
+### F16: SessionStart hook spec overclaimed (cannot run a skill)  (correctness)
+The hook spec said it runs "a quiet sync-with-brain drift check." A SessionStart hook is a
+shell command and cannot invoke a Claude skill. The live agent correctly did `git pull`
+only. FIXED: setup-brain step 7 item 4 now specifies the hook does the pull only;
+drift/autoUpdate-failure surfacing is sync-with-brain's job when run.
+
+### F17: Write/Edit before Read errors at the start  (minor cosmetic)
+The agent hit "Error writing file" / "File must be read first" on brain.config.json and
+marketplace.json before recovering. The editing tools require a prior Read of an existing
+file. FIXED: added a "Read before you edit" core principle to setup-brain.
 </content>
 </invoke>
