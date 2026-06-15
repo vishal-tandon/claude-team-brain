@@ -241,20 +241,33 @@ Then **write `brain.config.json`** from derived + answered values:
 Report it in one line: "Wrote your config: `<name>`, repo `<repo>`, <solo/team>, auto-sync.
 You can change any of this later by just telling me." Never show raw JSON unless asked.
 
-## Step 6: Propagate config into the manifest (BEFORE the marketplace add)
+## Step 6: Propagate config into the manifest, then PUSH (owner only, before the add)
 
-`marketplace.json` and `plugin.json` are static files Claude Code parses directly; they
-cannot read `brain.config.json` at runtime. The manifest `name` must match the
-`marketplaceName` the install will target, and this MUST happen before step 7 installs, or
-the install resolves a marketplace slug that does not exist.
+`marketplace.json` is a static file Claude Code fetches from the REMOTE when you run the
+marketplace add in step 7, not from your local clone. So two fields must be correct ON THE
+REMOTE before step 7, which means they must be committed and pushed here:
 
-- Write `marketplaceName` into `.claude-plugin/marketplace.json` `name`.
-- For an owner first standup, this plus the freshly written `brain.config.json` are real
-  repo changes. Offer once: "Commit your config and manifest so your other devices and
-  teammates inherit them? (yes / later)". On yes, this is the single sanctioned setup-time
-  push, via `push-to-brain`. On later, leave them staged.
+- **`name`** (top level) must equal `marketplaceName`, or `/plugin install brain@<name>`
+  targets a slug that does not exist.
+- **`plugins[0].source.repo`** must be the user's repo. The current CLI rejects the
+  `source: "."` shorthand and offers no repo-agnostic root form, so the template ships a
+  placeholder `your-org/your-brain` that you MUST rewrite to the derived repo. Leaving the
+  placeholder makes the marketplace add fail with `Invalid schema: plugins.0.source` or a
+  fetch against a non-existent repo.
 
-Skip entirely for joiners; their manifest already matches the repo.
+For an owner first standup:
+
+1. Write `marketplaceName` into `.claude-plugin/marketplace.json` `name`.
+2. Write the derived `repo` into `.claude-plugin/marketplace.json`
+   `plugins[0].source.repo` (keep the `{ "source": "github", "repo": "<repo>" }` shape).
+3. Commit `brain.config.json` + `.claude-plugin/marketplace.json` and **push** via
+   `push-to-brain`. This push is **required, not optional**: the marketplace add in step 7
+   reads the manifest from GitHub, so an un-pushed local fix does nothing. Say it plainly:
+   "Pushing your config and manifest now, the install reads them from GitHub." If the user
+   refuses the push, stop and explain the install cannot complete without it.
+
+Skip entirely for joiners: the owner already pushed a correct manifest, so the remote they
+add is already valid.
 
 ## Step 7: Wire everything (consent named once, inline why-safe)
 
@@ -273,6 +286,11 @@ broken ones.
 2. **Add the marketplace and install the plugin:**
    - `/plugin marketplace add <repo>`
    - `/plugin install brain@<marketplaceName>`
+   This reads the manifest pushed in step 6 from the remote. If the add fails with
+   `Invalid schema: plugins.0.source` or cannot find `brain@<marketplaceName>`, step 6's
+   manifest push did not land (placeholder `source.repo` or stale `name` still on the
+   remote): fix the manifest, push, and retry. Do not work around it by editing the cached
+   copy under `~/.claude/plugins/`.
    Why safe: skills install into the plugin cache, isolated from your local skills.
 
 3. **Enable auto-update for the brain marketplace (load-bearing, not optional).**

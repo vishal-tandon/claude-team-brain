@@ -264,7 +264,7 @@ explicit allow for `~/.claude/brain` in settings. Generic users unaffected.
 | F6 | FIXED | clone path read from the import line; 4 skills updated to resolve it | `test_primitives.sh` round-trip |
 | F7 | FIXED | optional SessionStart drift hook in `setup-brain` step 7 item 4 | e2e Act 6 negative test |
 | F8 | FIXED | next-session latency documented in README auto-update bullet | e2e Act 4 |
-| F9 | MITIGATED | explicit `skills`/`commands` in manifest + documented cache copy is inert (no clean exclude exists per docs) | n/a |
+| F9 | SUPERSEDED by F13 | the `source: "."` it relied on is invalid on the live CLI; see F13 | n/a |
 | F10 | FIXED | `setup-brain` derives `marketplaceName` from repo name, rejects default | `test_primitives.sh` |
 | F11 | FIXED | `explain-brain` scale detection uses content authors, not git history | e2e (manual) |
 | F12 | DOCUMENTED | ARCHITECTURE deployment note on clone vs sandbox | n/a |
@@ -275,5 +275,43 @@ construction rather than being patched one by one.
 
 Remaining verification owed: Layers 2-4 of `tests/e2e-acceptance.md` (live model +
 sandbox HOME + throwaway repo). Layer 1 (`tests/run.sh`) is green.
+
+---
+
+## Live test results (2026-06-15, Path 2 cold run, CLI v2.1.114)
+
+Ran the real Path 2: a cold Claude (sandbox HOME, no CLAUDE.md/memory/skills) in a
+freshly cloned throwaway repo, prompted "can you install the claude brain."
+
+**Validated working (the architecture held):**
+- Bootstrap nudge fired: cold Claude read the repo CLAUDE.md, then read and followed
+  `setup-brain` instead of improvising.
+- Identity derivation (repo/owner/marketplaceName from git+gh), owner detection via
+  ADMIN permission, banner, the two-question plain interview (parsed "Cool brain. Me
+  and three others." into name + team + reminded sync).
+- Config written for the user (no file editing), manifest name propagated, bare `@`
+  import line written, `autoUpdate: true` added to settings. Install completed.
+
+**Two new findings the live run exposed (doc-only verification had missed both):**
+
+### F13: plugin `source: "."` is rejected by the live CLI  (BLOCKER)
+`/plugin marketplace add` fails: `Invalid schema: plugins.0.source: Invalid input`.
+The CLI (v2.1.114) does not accept the `"."` shorthand, and per docs there is NO
+repo-agnostic form for a plugin at the repo root: it must be
+`{ "source": "github", "repo": "<owner/repo>" }` with the repo named. This directly
+contradicts the F9 assumption (which kept `"."` on doc authority). FIXED: manifest now
+ships the github object with a placeholder repo; `setup-brain` rewrites it to the
+user's repo during propagation (Step 6).
+
+### F14: manifest must be PUSHED before the marketplace add  (BLOCKER)
+`marketplace add` fetches the manifest from the REMOTE, not the local clone. So the
+propagated `name` and `source.repo` must be committed and pushed before the add, or the
+add reads the stale/placeholder manifest and fails. The setup-time push was previously
+"optional"; it is now REQUIRED and ordered before the add for owners (Step 6). Joiners
+are unaffected (the owner already pushed a valid manifest). In the live run the agent
+only recovered by improvising this push mid-install; the skill now does it proactively.
+
+Lesson: doc-only verification passed `source: "."` and an optional push; the live smoke
+run caught both. Smoke test against the real CLI is the completion gate, not docs.
 </content>
 </invoke>

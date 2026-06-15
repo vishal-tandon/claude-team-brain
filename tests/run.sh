@@ -18,6 +18,19 @@ for f in .claude-plugin/marketplace.json .claude-plugin/plugin.json brain.config
 done
 echo
 
+echo "== manifest plugin source form (F13 regression) =="
+python3 - "$REPO_ROOT/.claude-plugin/marketplace.json" <<'PY'
+import json,sys
+d=json.load(open(sys.argv[1]))
+src=d["plugins"][0].get("source")
+ok = isinstance(src,dict) and src.get("source")=="github" and "repo" in src
+print(("  PASS  plugins[0].source is github object" if ok
+       else f"  FAIL  plugins[0].source must be a github object, got: {src!r}"))
+sys.exit(0 if ok else 1)
+PY
+[[ $? -eq 0 ]] || RC=1
+echo
+
 echo "== bash syntax: hooks/pre-commit =="
 if bash -n "$REPO_ROOT/hooks/pre-commit"; then echo "  PASS  hooks/pre-commit"; else echo "  FAIL"; RC=1; fi
 echo
