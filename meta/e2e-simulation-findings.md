@@ -338,5 +338,23 @@ drift/autoUpdate-failure surfacing is sync-with-brain's job when run.
 The agent hit "Error writing file" / "File must be read first" on brain.config.json and
 marketplace.json before recovering. The editing tools require a prior Read of an existing
 file. FIXED: added a "Read before you edit" core principle to setup-brain.
+
+## Live test results, round 3 (2026-06-15, Path 2): CLEAN FULL PASS
+
+Re-ran Path 2 cold after the F15/F16/F17 fixes. Complete owner standup, start to close,
+with NO errors, NO permission stop-and-go, NO improvisation:
+- Bootstrap fired; identity derived; plain-language interview.
+- F17 fixed: read-before-edit, no write errors.
+- F15 fixed: allowlist meant git/gh/plugin ran with zero per-command prompts.
+- F13/F14 fixed: source.repo + name written and pushed (commit 7cb1e86) BEFORE the
+  marketplace add; add + install succeeded first try, no schema error.
+- autoUpdate, SessionStart pull hook (pull only, F16), pre-commit guard all wired.
+- Teammate onboarding worked: handle taken, collaborator added via gh, accept-invite
+  step explained, ready-to-send message produced.
+- Reached the discovery handoff close.
+
+Path 2 (owner) is VALIDATED end to end. Still unproven live: joiner connect (F3 joiner
+side), Path 1 (paste-a-link, incl the fork branch), and the original promise, a NEW skill
+pushed to the brain auto-installing on a user's next session via autoUpdate.
 </content>
 </invoke>
