@@ -6,6 +6,10 @@ description: >
   brain on a machine. Triggers: "set up my brain", "set up the team brain", "connect me to
   the brain", "install the claude brain", "onboard me to the brain", "I just cloned the
   brain, now what", "fix my brain setup", "my brain isn't working", or any close paraphrase.
+  ALSO handles a pasted GitHub repo link with no clone yet (the lazy Path 1): "set up this
+  brain <link>", "clone and set up this brain <link>", "can you set up this brain project
+  for my claude <link>", "connect me to this brain <link>". In that case it clones the repo
+  (or forks the template first for a brand-new owner), then runs the normal flow.
   Zero-config: the user never edits a file. This skill DERIVES identity from the git remote
   and gh, INTERVIEWS for the few real choices, WRITES brain.config.json itself, then wires
   everything. Detects owner vs joiner from repo permissions, branches voice accordingly, and
@@ -24,10 +28,15 @@ brain works. This is a config playbook AND a designed onboarding moment: the col
 pacing, and the closing handoff are load-bearing. They make setup feel like being handed
 something alive, not like running a wizard.
 
-This skill assumes the repo is already cloned (that is the cold-start truth: Claude knows
-nothing about the brain until the repo is on disk). If the user pasted a repo link and the
-clone has not happened yet, clone it first (to `~/.claude/brain` by default), then run this
-flow.
+There are two entry paths, both land in the same flow:
+
+- **Path 1 (lazy / pasted link):** the user drops a GitHub repo link into their existing
+  Claude and says "set this brain up." The repo is NOT on disk yet. Step 0 gets it there
+  (clone, or fork-then-clone for a new owner), then the flow continues.
+- **Path 2 (manual):** the user already forked, cloned, and opened Claude in the folder.
+  The repo IS on disk. Step 0 is a no-op; jump to Step 1.
+
+Either way, once the repo is on disk the rest is identical.
 
 ## Core principles
 
@@ -79,6 +88,37 @@ skill reads the clone path back out of it. There is no separate pointer file to 
 sync.
 
 ---
+
+## Step 0: Get the repo on disk (Path 1 only; skip if already cloned)
+
+If the user gave a repo link and there is no clone yet, get it onto disk before anything
+else. If the brain is already on disk (Path 2, you are running inside the clone), skip this
+entire step.
+
+First, the one disambiguation, because it decides clone-vs-fork. Ask plainly:
+
+> Are you joining a brain someone shared with you, or do you want your own brain from this
+> template?
+
+- **Joining (a teammate's / a shared brain):** `git clone <link>` to `~/.claude/brain`
+  (or a path the user names). They will be a joiner. Do not fork; they push to the shared
+  repo via collaborator access, not a fork.
+  - If the clone fails with 404/403, this is the private-repo access gap: tell them plainly
+    they need to be added as a collaborator (see Step 4's access message) and stop.
+
+- **Their own brain from the template:** they need their OWN repo to push to, so fork first.
+  - `gh repo fork <link> --clone=false` creates the fork under their account. Capture the
+    new `owner/name` from the fork output.
+  - `git clone <their-fork> ~/.claude/brain`.
+  - They are the owner; the rest of the flow localises and wires their fork.
+  - If they pasted a link that is ALREADY their own repo (the link owner equals their gh
+    handle), do not fork again, just clone it and treat them as owner.
+
+If `gh` is not installed or authed, you cannot fork or clone a private repo: run the Step 4
+pre-flight remediation first (it gives the exact install/auth command), then return here.
+
+Once the repo is on disk, continue to Step 1 exactly as the manual path does. From here the
+two paths are identical.
 
 ## Step 1: Cold open
 

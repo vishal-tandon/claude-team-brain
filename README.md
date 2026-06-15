@@ -13,24 +13,44 @@ edit a file.
 
 ## Quickstart
 
-**Standing up your own brain (solo or team owner):**
+You need three things first: **Claude Code**, the **GitHub CLI (`gh`) signed in**, and
+**Git**. If `gh` is missing or not signed in, the setup tells you the exact command and
+waits, so you can start either path even if you are not sure.
 
-1. Fork this repo to your GitHub account (private is fine), and clone your fork.
-2. Open Claude Code in the cloned folder.
-3. Say:
-   > set up my brain
+There are two ways in. Pick by how comfortable you are.
 
-**Joining a brain a teammate already has:**
+### Path 1: the easy one (paste a link)
 
-1. Clone their repo (ask them to add you as a collaborator if it is private).
-2. Open Claude Code in the cloned folder.
-3. Say:
-   > connect me to the brain
+Best if you already use Claude Code with your GitHub connected, or you just want the
+shortest route. In any Claude Code session, paste:
 
-That is the whole install. Claude reads the repo, runs the setup itself, and asks you only
-the things it cannot guess (a name, solo or team). You never edit a file or run a Git
-command. The exact wording does not matter, anything close ("I just cloned this, set it up")
-works.
+> Clone and set up this brain for me: `https://github.com/<owner>/<brain-repo>`
+
+Claude does the rest: it clones the repo (or, if you want your own brain, forks this
+template to your account first), asks you two plain questions (a name, solo or team), and
+wires everything. To **join a teammate's** brain, paste their repo link instead and say
+"connect me to this brain." Nothing else, no files, no Git commands.
+
+### Path 2: the hands-on one (more control)
+
+For people who like to see the folder. Note: a downloaded ZIP will not work, you need a
+real fork/clone so Claude can find the GitHub remote.
+
+1. **Fork** this repo to your GitHub account (private is fine). To join a teammate's brain
+   instead, skip the fork and use their repo.
+2. **Clone** it to your machine: `git clone <your-fork-url>`, or use GitHub Desktop, or your
+   IDE's "Clone Repository".
+3. **Open Claude Code in that folder:**
+   - Terminal: `cd` into the folder and run `claude`.
+   - VSCode / Cursor / JetBrains: install the Claude Code extension, open the folder, then
+     open the Claude panel. It works inside that folder.
+4. **Say:** "set up my brain" (or "connect me to the brain" if you are joining one).
+
+### Either way
+
+Claude reads the repo, runs the setup itself, and asks only what it cannot guess. You never
+edit a file. The exact wording does not matter, anything close ("I just cloned this, set it
+up") works.
 
 ---
 

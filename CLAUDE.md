@@ -3,6 +3,13 @@
 This file is the `@import` target. It loads into every session where the brain
 is active. Keep it focused on operating rules, not background context.
 
+> **Bootstrap (read first if the brain is not set up yet).** If this file is
+> loaded because Claude is sitting in a freshly cloned brain repo and the user
+> asks to set up, install, connect to, onboard onto, or fix the brain, do not
+> improvise: read and follow `skills/setup-brain/SKILL.md` to the letter. That
+> skill is the install. (If the brain is already wired, ignore this; the user
+> will not be asking to set up.)
+
 ---
 
 ## The single most important rule
