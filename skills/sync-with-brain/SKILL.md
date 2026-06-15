@@ -31,8 +31,11 @@ Report state clearly in one line. Offer the fix. Let the user confirm.
 
 Locate and read `brain.config.json` from the brain clone root. Extract:
 
-- `defaultClonePath`: where the clone lives (default `~/.claude/brain`).
-  Use the user's actual clone path if recorded; fall back to this default.
+- `clonePath`: resolve it by reading the context-import line in
+  `~/.claude/CLAUDE.md` (the bare `@<clonePath>/CLAUDE.md` line setup-brain wrote)
+  and taking the directory it points at. That import line is the persisted record
+  of where the clone lives. Fall back to `defaultClonePath` (`~/.claude/brain`)
+  only if no import line is found.
 - `branch`: the working branch (default `main`).
 - `syncMode`: `"auto"`, `"reminded"`, or `"manual"`. Controls nudge behavior
   (see below). Does NOT change what this skill checks, only how proactively it
@@ -62,10 +65,15 @@ Outcomes:
 ### B. Plugin cache version (skills)
 
 The plugin cache holds the installed skills. The brain plugin ships with NO
-pinned `version`, so Claude Code uses the source commit as the version: every new
-commit on the repo is a new version that auto-updates at session start. The drift
-to detect is therefore "the installed skills are built from an older commit than
-origin," not a semver gap.
+pinned `version`, so Claude Code treats the source commit as the version: every
+new commit on the repo counts as a newer version. Those newer versions only
+install automatically when `autoUpdate` is enabled for this marketplace in
+`~/.claude/settings.json` (`extraKnownMarketplaces.<marketplaceName>.autoUpdate`).
+Third-party marketplaces default to autoUpdate OFF, so if setup-brain did not set
+it (or it was removed), new skills never reach the user on their own. The drift to
+detect is therefore "the installed skills are built from an older commit than
+origin," not a semver gap, and the root cause is almost always a missing
+autoUpdate flag.
 
 Locate the installed plugin commit:
 - Look for `~/.claude/plugins/cache/<marketplaceName>/` (or the platform-appropriate
@@ -77,18 +85,28 @@ Locate the installed plugin commit:
 Outcomes:
 - Installed commit matches origin HEAD: skills are current.
 - Installed commit is behind origin: skills are stale (the session-start
-  auto-update has not run since the last push). Report and offer
-  `/plugin update <marketplaceName>` (or the equivalent refresh command).
+  auto-update has not run since the last push). Offer `/plugin marketplace update
+  <marketplaceName>` then `/plugin update <marketplaceName>` as the immediate fix.
+  Then check whether `autoUpdate` is set for this marketplace (check E). If it is
+  missing, this staleness will recur every time a skill is pushed: name that as
+  the real cause and recommend re-running `setup-brain` to restore the flag, not
+  just a one-off update.
 - Plugin cache not found: skills may not be installed at all. Report and offer
   the install command.
 
 ### C. @import presence (wiring check)
 
-Verify the `@import` line pointing at the brain clone is present in the user's
-active Claude settings (typically `~/.claude/CLAUDE.md` or equivalent). If it is
-missing, context is not loading even if the clone is current.
+Verify the context-import line pointing at the brain clone is present in the
+user's active Claude settings (typically `~/.claude/CLAUDE.md` or equivalent). If
+it is missing, context is not loading even if the clone is current.
 
-Check for a line matching: `@import <clonePath>/CLAUDE.md` (or the platform path).
+The import directive Claude Code uses is a BARE `@path`, not `@import path`.
+`setup-brain` writes `@<clonePath>/CLAUDE.md`. Match on that shape, never on a
+literal `import` token (an earlier version of this check grepped for `@import`,
+which never matches what setup writes and produced a permanent false alarm).
+
+Check for a line matching the regex `^@.*<clonePath>.*CLAUDE\.md` (tolerate an
+optional legacy `import ` token after the `@` so old installs still register).
 
 Outcomes:
 - Present: wiring is correct.
@@ -103,6 +121,23 @@ modes means the clone only updates when the user explicitly runs `sync-with-brai
 
 This check is informational only. Do not modify the hook without explicit user
 request.
+
+### E. autoUpdate flag (skills-distribution check)
+
+This is the root-cause check behind B. Read `~/.claude/settings.json` and look for
+`extraKnownMarketplaces.<marketplaceName>.autoUpdate`.
+
+Outcomes:
+- Present and `true`: new skills install themselves at session start. This is the
+  intended state.
+- Missing or `false`: new skills pushed to the brain will NOT reach this user
+  automatically. Each push leaves their skills stale until they manually update.
+  Report: "autoUpdate is off for the brain marketplace. New skills will not install
+  on their own. Run setup-brain to restore it." This is the single most common
+  reason a pushed skill never shows up for a teammate.
+
+This check is what distinguishes a one-off stale cache (fixed by `/plugin update`)
+from a systemic distribution gap (fixed by enabling autoUpdate).
 
 ## syncMode behavior
 
@@ -127,7 +162,7 @@ In all modes, the drift report is the same. Only the action taken differs.
   "Brain clone not found at `<clonePath>`. Run setup-brain to initialize."
   and stop.
 
-### 2. Run all four checks (A-D above) in parallel
+### 2. Run all five checks (A-E above) in parallel
 
 Gather results before reporting anything. All checks are read-only at this stage.
 
@@ -147,10 +182,11 @@ Then, if issues exist, show the detail and the fix action(s):
 ```
 Brain sync status
 
-  Context:  3 commits behind origin/main               [needs pull]
-  Skills:   built from an older commit than origin      [needs update]
-  @import:  present                                     [ok]
-  Hook:     SessionStart pull hook not found            [informational]
+  Context:    3 commits behind origin/main             [needs pull]
+  Skills:     built from an older commit than origin    [needs update]
+  autoUpdate: off for brain marketplace                 [root cause - run setup-brain]
+  @import:    present                                   [ok]
+  Hook:       SessionStart pull hook not found          [informational]
 
 Fix:
   (a) Pull context now  (git pull origin main)
@@ -239,7 +275,7 @@ items explicitly.
   if a hook fires it). It does not watch for changes, poll, or schedule itself.
 - **Hardcoding the clone path or marketplace name.** Always read `brain.config.json`.
 - **Skipping the @import check.** A current clone with a missing @import still
-  means context is not loading. Check all four dimensions every time.
+  means context is not loading. Check all five dimensions every time.
 - **Force-pulling.** Never `git pull --force` or `git reset --hard`. If the pull
   has conflicts, use the conflict resolution sub-flow. Content is never discarded
   without user confirmation.

@@ -39,9 +39,11 @@ personal content into shared scope.**
 
 Locate and read `brain.config.json` from the brain clone root. Extract:
 
-- `defaultClonePath`: resolves to the brain clone directory (default
-  `~/.claude/brain`). Use the user's actual clone path if recorded, otherwise fall
-  back to this default.
+- `clonePath`: resolve it by reading the context-import line in
+  `~/.claude/CLAUDE.md` (the bare `@<clonePath>/CLAUDE.md` line setup-brain wrote)
+  and taking the directory it points at. That import line is the persisted record
+  of where the clone lives. Fall back to `defaultClonePath` (`~/.claude/brain`)
+  only if no import line is found.
 
 All filesystem writes go into `<clonePath>/project-memory/<slug>/`. Use absolute
 paths throughout. Never rely on a persistent cwd.

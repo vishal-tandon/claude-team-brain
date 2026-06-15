@@ -53,9 +53,13 @@ Resolve `<brain>` from the `@import` line in `~/.claude/CLAUDE.md` (default
 If a file is missing or malformed, render what you can and note the gap inline. Do not fail
 the whole tour on one missing index.
 
-**Determine scale.** Treat the brain as **solo** if there is at most one perspective and no
-sign of multiple contributors (single author in recent history, placeholder or single-name
-config). Otherwise treat it as **team**. This switches the framing in Steps 2 and 5.
+**Determine scale.** Base this on the populated content and config, NOT raw git history (a
+fresh fork carries the template author's commits and would misread). Treat the brain as
+**solo** if the shared content is still essentially just the templates/examples and the
+config names a single owner with no collaborators. Treat it as **team** once there is real
+shared memory or perspectives authored by more than one person, or the repo has
+collaborators. If `brain.config.json` carries a `scale` hint, honor it over inference. This
+switches the framing in Steps 2 and 5.
 
 ## Step 2: What the brain is (adapted)
 

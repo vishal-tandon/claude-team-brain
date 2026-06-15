@@ -31,9 +31,12 @@ system cannot safely proceed without human judgement.
 
 Locate the brain clone. Read `brain.config.json` from the repo root and extract:
 
-- `defaultClonePath`: where the clone lives (default `~/.claude/brain`). If the
-  user has a non-default clone path recorded (e.g. from a prior `setup-brain` run),
-  use that. Otherwise fall back to `defaultClonePath`.
+- `clonePath`: resolve it by reading the context-import line in
+  `~/.claude/CLAUDE.md` (the bare `@<clonePath>/CLAUDE.md` line setup-brain wrote)
+  and taking the directory it points at. That import line is the persisted record
+  of where the clone lives, so a non-default clone path resolves correctly without
+  any separate pointer. Fall back to `defaultClonePath` (`~/.claude/brain`) only if
+  no import line is found.
 - `branch`: the working branch to commit and push to (default `main`).
 - `governance`: `"open"` or `"governed"`. Routes the final push step.
 - `syncMode`: `"auto"`, `"reminded"`, or `"manual"`. Informs push behavior (auto

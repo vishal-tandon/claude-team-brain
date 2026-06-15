@@ -26,7 +26,7 @@ contributed.**
 | Component | What it is | Removed? |
 |---|---|---|
 | `@import` line | The line in `~/.claude/CLAUDE.md` (or equivalent) that loads the brain context into every session | Yes, with confirmation |
-| Marketplace entry | The `/plugin marketplace add <repo>` registration that makes skills available | Yes, with confirmation |
+| Marketplace entry | The `/plugin marketplace add <repo>` registration plus the `extraKnownMarketplaces.<marketplaceName>` block (with `autoUpdate`) in `~/.claude/settings.json` that makes skills available and auto-updating | Yes, with confirmation |
 | SessionStart pull hook | The hook in Claude settings that runs `git pull` on the clone at session start | Yes, with confirmation |
 | `core.hooksPath` git config | The git config that activates the pre-commit content scan | Yes, with confirmation |
 | **Brain clone** | The full git repository at the configured clone path | **Never removed** |
@@ -48,8 +48,12 @@ would be destructive and irreversible. Leave it on disk.
 
 Locate and read `brain.config.json` from the brain clone root. Extract:
 
-- `defaultClonePath`: where the clone lives (default `~/.claude/brain`).
-  Use the user's actual clone path if known; fall back to this default.
+- `clonePath`: resolve it by reading the context-import line in
+  `~/.claude/CLAUDE.md` (the bare `@<clonePath>/CLAUDE.md` line setup-brain wrote)
+  and taking the directory it points at. That import line is the persisted record
+  of where the clone lives. Fall back to `defaultClonePath` (`~/.claude/brain`)
+  only if no import line is found. (Note: you are about to remove that import line,
+  so resolve the clone path BEFORE removing it.)
 - `marketplaceName`: the marketplace slug used at install (e.g. `your-team-brain`).
 - `branch`: the working branch (needed to construct the hook reference if checking).
 
@@ -69,14 +73,20 @@ Inventory all four components:
   - `~/.claude/CLAUDE.md`
   - `~/.claude/settings/CLAUDE.md`
   - The project-level CLAUDE.md if the brain was wired per-project
-- Search for a line matching `@import.*<clonePath>.*CLAUDE.md` (case-insensitive,
-  path may vary).
+- Search for a line matching the regex `^@.*<clonePath>.*CLAUDE\.md`
+  (case-insensitive, path may vary). The directive is a BARE `@path`, not
+  `@import path`. Do NOT require a literal `import` token, or the line setup
+  actually wrote (`@<clonePath>/CLAUDE.md`) will never be found and the uninstall
+  will silently leave the brain loading. Tolerate an optional legacy `import `
+  token after the `@` so old installs are still matched.
 - Status: Present / Not found.
 
 **B. Marketplace entry**
 - Check whether `<marketplaceName>` appears in the registered marketplace list.
-- On Claude Code: inspect `~/.claude/settings.json` or equivalent for marketplace
-  registrations, or run the equivalent CLI list command if available.
+- On Claude Code: inspect `~/.claude/settings.json` (including the
+  `extraKnownMarketplaces.<marketplaceName>` block that carries `autoUpdate`) or
+  equivalent for marketplace registrations, or run the equivalent CLI list command
+  if available.
 - Status: Registered / Not found.
 
 **C. SessionStart pull hook**
@@ -142,8 +152,14 @@ Confirm? (yes / skip)
 On yes: run the appropriate deregistration command. On Claude Code this is
 typically modifying `~/.claude/settings.json` to remove the marketplace entry,
 or running `/plugin marketplace remove <marketplaceName>` if the CLI supports it.
+Also remove the `extraKnownMarketplaces.<marketplaceName>` block from
+`~/.claude/settings.json` if setup-brain wrote one: that block carries the
+`autoUpdate` flag, and leaving it behind would keep Claude Code trying to refresh
+a marketplace the user just disconnected. Parse the JSON, delete the keyed entry,
+write it back (never string-replace JSON).
 
-After removal: verify the entry is gone. Report: `Marketplace entry removed.`
+After removal: verify both the marketplace entry and the `extraKnownMarketplaces`
+block are gone. Report: `Marketplace entry removed.`
 
 Note: removing the marketplace entry may not immediately remove the plugin cache
 files. That is expected. The cache is cleaned by the platform at its own
@@ -242,6 +258,10 @@ Adjust the "Removed" list based on what was actually removed (vs skipped).
 - **Corrupting the settings file.** Read the full settings file, parse it, make
   the targeted removal, write it back. Never use sed or string replacement on JSON
   files. It risks silently mangling syntax.
+- **Editing before reading.** Always Read `~/.claude/settings.json` (and `CLAUDE.md`)
+  before writing to them. The editing tools require a prior read of an existing file;
+  skipping it produces an avoidable "error writing file" that makes disconnect look
+  broken before it self-recovers.
 - **Removing more than the four targeted components.** This skill has a narrow
   scope: these four integration points. Do not clean up or reorganize anything
   else in the user's Claude config.

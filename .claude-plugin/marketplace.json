@@ -7,8 +7,13 @@
   "plugins": [
     {
       "name": "brain",
-      "source": ".",
-      "description": "The brain: setup, sync, push/share, session rituals (handoff/log/reflect/wrap), and clean disconnect. Skills auto-discover from skills/. Version is intentionally omitted so every push is picked up at session start (freshness > tidiness, the context-bus model)."
+      "source": {
+        "source": "github",
+        "repo": "your-org/your-brain"
+      },
+      "skills": "./skills",
+      "commands": "./commands",
+      "description": "The brain: setup, sync, push/share, session rituals (handoff/log/reflect/wrap), and clean disconnect. Skills and commands are declared explicitly (./skills, ./commands). The plugin lives at the repo root, and the current Claude Code CLI rejects the source:'.' shorthand and offers no repo-agnostic root form, so source MUST be the github object naming owner/repo. The repo here is a PLACEHOLDER: setup-brain rewrites it to the user's fork (same place it propagates the marketplace name) and pushes the manifest before the marketplace add, because the add fetches the manifest from the remote, not the local clone. The memory dirs (shared-memory/, perspectives/, project-memory/) copied into the plugin cache alongside the skills are INERT there and must never be @import'd from the cache; context is always imported from the git clone. Version is intentionally omitted so every commit counts as a newer version; setup-brain enables autoUpdate so those commits (new skills included) install at session start. Version omission defines 'newer'; autoUpdate applies it."
     }
   ]
 }
