@@ -1,0 +1,51 @@
+# .gitignore: threat model: LEAK PREVENTION, not bloat prevention
+#
+# This brain is shared context. The risk is not large files or build artifacts.
+# The risk is personal content, secrets, or interaction preferences leaking
+# into a shared or public repo. Every pattern here addresses that threat.
+#
+# Rule: if content is personal (how Claude talks to YOU) or secret
+# (credentials, tokens), it must never reach this repo.
+
+# ─── Personal local memory ───────────────────────────────────────────────────
+# Files with .local.md suffix are by convention personal/local variants
+# of brain files, never synced.
+*.local.md
+
+# Any directory named "personal/" is off-limits to the shared brain
+personal/
+
+# ─── Secrets and credentials ─────────────────────────────────────────────────
+.env
+.env.*
+*.secret
+secrets/
+credentials/
+*.pem
+*.key
+*.p12
+*.pfx
+
+# ─── OS and editor noise ─────────────────────────────────────────────────────
+.DS_Store
+.DS_Store?
+._*
+Thumbs.db
+Desktop.ini
+
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+
+# ─── Runtime / temp ──────────────────────────────────────────────────────────
+*.log
+*.tmp
+.cache/
+
+# ─── Internal build/QA artifacts (never ship in a shared/public brain) ───────
+# Session logs (/log writes here) and dry-run findings name local machines and
+# build process. Keep them local; they are not user-facing brain content.
+data/session-log.md
+meta/*-findings.md

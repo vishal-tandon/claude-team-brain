@@ -1,0 +1,10 @@
+{
+  "name": "Your Team Brain",
+  "marketplaceName": "your-team-brain",
+  "repo": "your-org/your-brain",
+  "branch": "main",
+  "defaultClonePath": "~/.claude/brain",
+  "governance": "open",
+  "syncMode": "reminded",
+  "authValidation": null
+}

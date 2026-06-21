@@ -1,0 +1,23 @@
+# .gitattributes: merge strategy for append-only brain files
+#
+# The brain uses GitHub as a context bus, not a code pipeline.
+# For genuinely append-only files, merge=union makes conflicts impossible:
+# git concatenates both sides instead of flagging a conflict.
+#
+# Scope is intentionally narrow: ONLY files that grow by appending new entries
+# (friction signals, session logs, INDEX pointer lists).
+#
+# DO NOT add CLAUDE.md, fact files, or config files here. Those are
+# edited in place and union-merging them would silently duplicate edits.
+
+# Friction journal: append-only, one entry per friction event
+meta/signals.md merge=union
+
+# Session logs: append-only, one entry per session
+**/session-log.md merge=union
+
+# INDEX pointer files: grow by appending new pointers, never edited in place
+shared-memory/INDEX.md merge=union
+project-memory/INDEX.md merge=union
+perspectives/INDEX.md merge=union
+meta/INDEX.md merge=union
