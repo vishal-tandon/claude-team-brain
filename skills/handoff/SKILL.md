@@ -87,7 +87,9 @@ Before executing anything, verify current state:
 Keep the prompt tight. A fresh context window should be able to start
 productive work within two exchanges of reading this. Do not include full
 file contents. Use pointers and summaries. The brain's `@import` will reload
-shared context automatically.
+shared context automatically. Prescribe WHAT and WHY (current state, locked
+decisions, next move), not HOW — assume a capable executor that will read the
+linked files and the @imported rules rather than needing methodology spelled out.
 
 ---
 
@@ -118,6 +120,10 @@ Create `data/` if it does not exist. Confirm the path.
   should reflect what is actually true right now, not what was planned.
 - Do not include personal interaction preferences in the handoff. The recipient
   window will load the user's own local memory independently.
+- Do not restate operating rules saved to a CLAUDE.md this session — they
+  auto-load / reload via `@import`. Repeating them in the handoff is a redundant
+  second source of truth that drifts. Include a session-only note ONLY if a fresh
+  window reading the @imported rules + the linked files would still miss it.
 - The "context to verify" section exists because handoffs describe past state.
   Treat it as a mandatory state-check gate, not optional boilerplate.
 - If the brain clone is not found, write the handoff from conversation context
