@@ -26,6 +26,16 @@ other behavior is unchanged.
 
 ## Step 2: Protect the main branch on GitHub
 
+**Plan requirement, read first:** GitHub only offers branch protection /
+rulesets on PRIVATE repos on paid plans (GitHub Pro for personal accounts,
+Team or higher for organizations). On a free plan with a private repo, this
+step is unavailable (the settings UI hides it; the API returns 403 "Upgrade
+to GitHub Pro"). Your options in that case: upgrade the plan, make the repo
+public (only if the brain contains nothing private, and never for a solo
+brain with a synced `personal/` tier), or run governed mode as convention
+only: `push-to-brain` still opens PRs and refuses to self-merge, but GitHub
+will not mechanically stop a direct push.
+
 In your repo on GitHub:
 
 1. Go to **Settings → Branches → Add branch ruleset** (or **Add branch
@@ -33,7 +43,10 @@ In your repo on GitHub:
 2. Target the `main` branch.
 3. Enable: **Require a pull request before merging**.
 4. Set required approvals to 1 (or more, depending on team size).
-5. Optionally enable: **Require status checks to pass** if you add CI later.
+5. Enable: **Require status checks to pass** and add `guard` (the
+   `brain-guard` workflow that ships with this template). This makes the
+   personal-content / secret scan a hard merge gate, not just a client-side
+   hook.
 6. Save.
 
 After this, no one can push directly to `main`. All changes must come through

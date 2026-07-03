@@ -333,20 +333,26 @@ keep itself updated", "Turning on the privacy guard". Do not read the mechanism 
    Why safe: it only pulls and updates the brain plugin; it touches no other marketplace and
    never pushes.
 
-4. **SessionStart auto-pull hook (default ON, do not ask).** Add a SessionStart hook to
-   `~/.claude/settings.json` that runs `git -C <clonePath> pull --quiet` so the context
-   clone is current at the start of every session. This is what makes "always up to date"
-   true without thinking, so install it by default for `auto` and `reminded`. The ONLY
-   exception is `syncMode: manual` (the user explicitly chose to control sync): skip it
-   there and mention `sync-with-brain` pulls on demand. Do not present this as an optional
-   question, it is core to the promise. Say it plainly: "I'll keep your brain updating
-   itself in the background."
-   Important: a SessionStart hook is a SHELL command, it CANNOT run a Claude skill, so it
-   does the `git pull` only. Surfacing drift or an autoUpdate failure is `sync-with-brain`'s
-   job when it is run (manually or via a reminded nudge). Do not write a hook that claims to
-   run a skill-level drift check, it cannot.
+4. **SessionStart freshness hook (default ON, do not ask).** Add a SessionStart hook to
+   `~/.claude/settings.json` that runs `bash <clonePath>/hooks/session-start.sh`. The
+   script ships IN the repo, so improvements to it reach every device on the next pull
+   while the settings.json line never changes. It pulls the context clone, warns in-session
+   when the pull fails, and warns when the marketplace `autoUpdate` flag is missing (the
+   two silent failures that otherwise go unnoticed for weeks). This is what makes "always
+   up to date" true without thinking, so install it by default for `auto` and `reminded`.
+   The ONLY exception is `syncMode: manual` (the user explicitly chose to control sync):
+   skip it there and mention `sync-with-brain` pulls on demand. Do not present this as an
+   optional question, it is core to the promise. Say it plainly: "I'll keep your brain
+   updating itself in the background."
+   Important: a SessionStart hook is a SHELL command, it CANNOT run a Claude skill. The
+   script surfaces the two mechanical warnings only; the full five-dimension drift
+   diagnosis stays `sync-with-brain`'s job. Do not write a hook that claims to run a
+   skill-level drift check, it cannot.
+   Legacy installs: if the settings hook is a bare `git -C <clonePath> pull --quiet` line
+   from an older setup, replace it with the script form.
    Why (your reasoning, not the user): autoUpdate refreshes skills at session start; this
-   hook refreshes context. Together they keep both current.
+   hook refreshes context and tells the user when either channel is broken. Together they
+   keep both current, and failures stop being silent.
 
 5. **Activate the pre-commit guard:** `git -C <clonePath> config core.hooksPath hooks`.
    Why safe: it runs the repo's secret and personal-content scan before any commit, so
@@ -423,6 +429,7 @@ instead of the full standup. Check each, repair only the broken:
 | autoUpdate | `extraKnownMarketplaces.<marketplaceName>.autoUpdate` is `true` | write the block |
 | Manifest name | `marketplace.json` `name` == `marketplaceName` | propagate |
 | Pre-commit guard | `core.hooksPath` == `hooks` | set it |
+| SessionStart hook | settings hook runs `hooks/session-start.sh` (not a bare `git pull`) | rewrite to the script form (skip in `manual` syncMode) |
 
 This is the same inventory `sync-with-brain` reports as drift; setup-brain is the one that
 repairs it.

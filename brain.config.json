@@ -5,6 +5,7 @@
   "branch": "main",
   "defaultClonePath": "~/.claude/brain",
   "governance": "open",
+  "mode": "team",
   "syncMode": "reminded",
   "authValidation": null
 }

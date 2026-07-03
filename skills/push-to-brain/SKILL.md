@@ -95,6 +95,22 @@ In every other case: run the workflow end-to-end silently. One line at the end.
 - Check the current branch. If not on the configured `branch`, report which branch
   is checked out and offer to switch. If detached HEAD, report and stop.
 
+### 1.5 Solo mode only: refresh personal snapshots
+
+If `brain.config.json` has `"mode": "solo"`, the `personal/` tier is a synced
+tier (see `personal/INDEX.md`). Snapshot copies drift, so refresh them before
+every push:
+
+- Read `personal/INDEX.md`. For each entry with a `source:` line, copy the
+  live source file over the tracked copy in `personal/` (expand `~`). Skip
+  missing sources silently (that entry's source lives on another device).
+- Any resulting change is part of this push. No separate confirmation; this
+  is the tier working as designed.
+
+In team mode (`"mode": "team"` or absent): skip this step entirely.
+`personal/` should not exist as tracked content, and personal material found
+in the diff is a scan flag, not a snapshot to refresh.
+
 ### 2. Pre-push sensitive content scan (autonomous unless flagged)
 
 Before staging, scan the diff for content that does not belong in the shared brain.
@@ -118,6 +134,11 @@ repo is hard to undo and breaks teammates' sessions.
 - Common secret patterns: `sk_[a-zA-Z0-9]+`, `ghp_[a-zA-Z0-9]+`,
   `figd_[a-zA-Z0-9]+`, `Bearer [a-zA-Z0-9_-]+`, AWS access keys (`AKIA[0-9A-Z]{16}`)
 - Email addresses and phone numbers in close proximity (potential PII)
+
+**Solo-mode scope note:** in solo mode, personal-preference patterns under
+`personal/` are expected content, do not flag them there (mirrors the
+pre-commit guard's gate). Secret patterns still flag everywhere, including
+`personal/`. In team mode there is no exemption.
 
 **If anything is flagged:**
 
@@ -155,8 +176,8 @@ Autonomous mode applies when ALL of the following are true:
 - Diff is <= 200 lines total (additions + deletions)
 - All changed files are within expected brain paths (`shared-memory/`,
   `project-memory/`, `perspectives/`, `meta/`, `skills/`, `commands/`,
-  `.claude-plugin/`, or top-level docs like `README.md`, `CLAUDE.md`,
-  `ARCHITECTURE.md`)
+  `.claude-plugin/`, top-level docs like `README.md`, `CLAUDE.md`,
+  `ARCHITECTURE.md`, and in solo mode only, `personal/`)
 - A commit message can be confidently inferred from the change pattern
 
 Otherwise: interactive mode (show diff + confirm message before staging).

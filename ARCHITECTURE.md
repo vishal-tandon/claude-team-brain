@@ -98,6 +98,29 @@ INDEX files (`shared-memory/INDEX.md` etc.) are pointer lists only, one line
 per fact file. They are marked `merge=union` in `.gitattributes` so concurrent
 appends from different contributors land cleanly without a conflict.
 
+### Solo mode: the personal tier syncs too
+
+"Solo across devices is first-class" needs a mechanism, not just a sentence:
+a solo user's most valuable context IS Tier 1 (voice, preferences, their
+global instruction layer), and with no teammates to leak to, the only leak
+surface is a future repo-visibility change.
+
+Set `"mode": "solo"` in `brain.config.json` and un-ignore `personal/*` in
+`.gitignore`, and the `personal/` directory becomes a synced tier for that
+content. The guard adapts: personal content is permitted under `personal/`
+ONLY (every other tier still blocks it), and `personal/` is still scanned for
+secrets. In team mode (default) the directory stays ignored and the guard
+blocks personal content everywhere.
+
+Hand-copied snapshots drift within days, so `personal/INDEX.md` entries can
+declare a `source:` line pointing at the live file; `push-to-brain` refreshes
+those copies before every push and `sync-with-brain` offers to apply pulled
+updates back to the live locations on other devices. See `personal/INDEX.md`.
+
+A solo brain with a synced personal tier must stay private. Converting to
+team use means re-ignoring `personal/`, purging the tier from history, and
+flipping the mode flag back.
+
 ---
 
 ## Configuration externalization
@@ -116,6 +139,7 @@ Key fields:
 | `branch` | Single working branch (default: `main`) |
 | `defaultClonePath` | Where to clone locally (default: `~/.claude/brain`) |
 | `governance` | `"open"` or `"governed"`, controls push-to-brain routing |
+| `mode` | `"team"` (default) or `"solo"`. Solo permits the synced `personal/` tier and gates the guard's personal-content exemption |
 | `syncMode` | `"auto"`, `"reminded"`, or `"manual"`, controls sync nudges |
 | `authValidation` | `null` = any authed `gh` account. Regex string = enterprise handle validation. |
 
@@ -137,6 +161,11 @@ gate is the entire point.
 To enable governed mode:
 1. Set `"governance": "governed"` in `brain.config.json`.
 2. Follow `docs/governed-mode.md` to configure branch protection and CODEOWNERS.
+
+Plan gating: GitHub branch protection on a PRIVATE repo requires a paid plan
+(GitHub Pro for personal accounts, Team for organizations). On a free plan the
+protection step only works if the repo is public. Details in
+`docs/governed-mode.md`.
 
 ---
 
@@ -192,6 +221,28 @@ The `.gitattributes` `merge=union` setting, atomic memory design, and
 pre-commit guard are the three structural robustness features. They address
 the three most likely failure modes: merge conflicts on append-only files,
 conflicting edits to shared facts, and accidental personal/secret content leaks.
+
+Two GitHub Actions back these up server-side, because client-side protection
+only covers devices where setup-brain ran:
+
+- **`brain-guard`** (`.github/workflows/guard.yml`): re-runs the exact
+  pre-commit scan on every push and PR. A clone without `core.hooksPath` set
+  can no longer leak silently; in governed mode, add it as a required status
+  check and it blocks the merge outright.
+- **`brain-staleness-digest`** (`.github/workflows/staleness.yml`): weekly
+  deterministic check that opens or updates one issue when the brain looks
+  stale (no commits, empty `signals.md`, empty shared-memory). It is the
+  forcing function for the review ritual; without it the self-improvement
+  loop tends to never fire.
+
+Both are deterministic shell, zero AI tokens, zero per-user setup: they ship
+with the template and run on every fork.
+
+The third silent-failure fix is client-side: the SessionStart hook setup-brain
+installs runs `hooks/session-start.sh` from the clone (so it updates via pull).
+It pulls context and prints a one-line in-session warning when the pull fails
+or when the marketplace `autoUpdate` flag is missing, the two failures that
+otherwise leave a device quietly stale for weeks.
 
 ---
 

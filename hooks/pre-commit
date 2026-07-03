@@ -49,6 +49,11 @@ SECRET_PATTERNS=(
 
 for file in $STAGED; do
   [[ -f "$file" ]] || continue
+  # tests/ holds DELIBERATE fake-secret + personal fixtures, and hooks/ (this
+  # guard's own source) holds the secret/personal pattern LITERALS. Scanning
+  # either makes the guard unable to coexist with itself once core.hooksPath is
+  # active. Exempt both from PASS 1 and PASS 2.
+  case "$file" in tests/*|hooks/*) continue ;; esac
   for pattern in "${SECRET_PATTERNS[@]}"; do
     if git diff --cached "$file" | grep -qiE "$pattern" 2>/dev/null; then
       ERRORS+=("SECRET PATTERN in $file: matched /$pattern/")
@@ -74,23 +79,46 @@ PERSONAL_PATTERNS=(
   '(do not|don'\''t) (address me|call me)'
   '(do not|don'\''t) use my (name|handle|preferred)'
   'i prefer (you|claude) (to )?'
-  # 1:1 / coaching signals
-  '1:1|one.on.one|performance review|personal goal'
+  # 1:1 / coaching signals. "1:1" requires non-digit boundaries so timestamps
+  # (11:16) and ratios (16:10) do not false-positive as coaching content.
+  '(^|[^0-9])1:1([^0-9]|$)|one.on.one|performance review|personal goal'
   # Explicit personal-memory markers
   'personal memory|local memory|private memory'
   # Career / identity content
   'my career|my resume|my cv\b|my linkedin'
 )
 
-# Paths exempt from PASS 2 ONLY. Skill and command files are written in
-# second-person imperative voice ("when you ask", "do not use X") by nature, so
-# the personal-preference scan produces false positives that hard-block the
-# skill-sharing workflow (push-to-brain refuses --no-verify, so there is no
-# escape hatch). Secrets (PASS 1) and denylist literals (PASS 3) STILL scan every
-# file including these.
+# Paths exempt from PASS 2 ONLY. Two classes:
+#   1. Skill/command/workflow files are written in second-person imperative
+#      voice ("when you ask", "do not use X") by nature, so the personal-
+#      preference scan produces false positives that hard-block the
+#      skill-sharing workflow (push-to-brain refuses --no-verify, so there is
+#      no escape hatch).
+#   2. Self-describing surfaces (top-level operating docs, docs/, meta/,
+#      .gitignore, personal/INDEX.md) legitimately QUOTE the guarded
+#      vocabulary ("personal memory", "1:1 coaching") because they document
+#      the boundary rule itself. A file that describes the rule cannot be
+#      scanned for the rule's vocabulary; the CI full-tree scan (brain-guard
+#      on a first push) would otherwise fail on a pristine template.
+# The content tiers where memory promotion actually lands (shared-memory/,
+# project-memory/, perspectives/) are NEVER exempt. Secrets (PASS 1) and
+# denylist literals (PASS 3) STILL scan every file including these.
+# Solo mode: a single-owner brain syncs the personal layer too, but ONLY under
+# personal/. Read mode from brain.config.json (best-effort; default team).
+BRAIN_MODE="team"
+if [[ -f brain.config.json ]] && grep -qE '"mode"[[:space:]]*:[[:space:]]*"solo"' brain.config.json; then
+  BRAIN_MODE="solo"
+fi
+
 is_pass2_exempt() {
   case "$1" in
-    skills/*|commands/*) return 0 ;;
+    skills/*|commands/*|tests/*|hooks/*|.github/*|docs/*|meta/*) return 0 ;;
+    CLAUDE.md|ARCHITECTURE.md|README.md|.gitignore|personal/INDEX.md) return 0 ;;
+    # Shipped scaffolds only, by exact path: tier templates and the worked
+    # example describe what NOT to put in a tier, quoting the vocabulary.
+    # User-created files in these tiers are NOT exempt.
+    */_TEMPLATE.md|perspectives/example-perspective.md) return 0 ;;
+    personal/*) [[ "$BRAIN_MODE" == "solo" ]] && return 0 || return 1 ;;
     *) return 1 ;;
   esac
 }

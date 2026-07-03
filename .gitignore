@@ -12,8 +12,14 @@
 # of brain files, never synced.
 *.local.md
 
-# Any directory named "personal/" is off-limits to the shared brain
-personal/
+# The personal/ tier is off-limits to a TEAM brain (the default). In SOLO mode
+# (brain.config.json "mode": "solo") a single owner may sync their personal
+# layer across their own devices: comment the personal/* line out to enable
+# that. The pre-commit guard still confines personal content to personal/ and
+# still scans it for secrets in both modes. Re-add the ignore if the brain
+# ever converts to team use. personal/INDEX.md (the tier's doc) always ships.
+personal/*
+!personal/INDEX.md
 
 # ─── Secrets and credentials ─────────────────────────────────────────────────
 .env
