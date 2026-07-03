@@ -35,7 +35,10 @@ fi
 if [ -n "$MARKETPLACE" ] && [ -f "$SETTINGS" ]; then
   # Look for the marketplace block and an autoUpdate: true within a few lines
   # of it. Coarse but dependency-free; sync-with-brain does the precise check.
-  if ! grep -A4 "\"$MARKETPLACE\"" "$SETTINGS" | grep -qE '"autoUpdate"[[:space:]]*:[[:space:]]*true'; then
+  # Window must clear the nested source block that precedes the flag
+  # ({source{source,repo},} = 5 lines at indent 2), hence -A8, verified against
+  # a real settings.json where -A4 produced a false "flag missing" warning.
+  if ! grep -A8 "\"$MARKETPLACE\"" "$SETTINGS" | grep -qE '"autoUpdate"[[:space:]]*:[[:space:]]*true'; then
     echo "brain: autoUpdate is OFF for marketplace '$MARKETPLACE'. Pushed skills will not install themselves. Run setup-brain (or sync-with-brain) to restore it."
   fi
 fi
