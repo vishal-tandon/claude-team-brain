@@ -218,6 +218,15 @@ Fix:
 - After a clean pull, report how many files changed:
   `Pulled. Context updated (N files changed, M commits ahead of where you were).`
 
+**Solo mode only (`"mode": "solo"` in brain.config.json):** if the pull
+changed files under `personal/`, offer to apply them outward: for each
+`personal/INDEX.md` entry with a `source:` line whose tracked copy just
+changed, copy the tracked copy over the live source location (expand `~`).
+This is the restore side of the personal tier; without it, another device's
+pushed personal updates sit in the clone and never reach the live files.
+Show the file list, apply on confirmation (auto syncMode: apply, then report).
+Never do this in team mode.
+
 ### 6. Update skills (if updating)
 
 Run the appropriate marketplace update command for the platform. If `gh` or the

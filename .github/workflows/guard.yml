@@ -1,0 +1,58 @@
+# Server-side boundary guard.
+#
+# WHY THIS EXISTS: the pre-commit hook only protects devices where setup-brain
+# ran `git config core.hooksPath hooks`. Anyone who clones without the installer
+# (or whose hook install silently failed) can push personal content or secrets
+# straight to main in open governance. This workflow is the backstop: the SAME
+# scan, run by GitHub on every push and PR, no client setup required.
+#
+# HOW: `git reset --soft <base>` moves HEAD to the base commit while leaving the
+# index at the pushed content, so `git diff --cached` inside hooks/pre-commit
+# sees exactly the pushed changes as if they were staged. One scan
+# implementation, two enforcement points, zero drift between them.
+#
+# In governed mode, add this workflow as a required status check on main.
+# In open mode it cannot block a completed push, but it fails loudly on the
+# commit that leaked so the team can scrub it while the blast radius is small.
+
+name: brain-guard
+
+on:
+  push:
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  guard:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Run boundary guard on the pushed diff
+        env:
+          EVENT_NAME: ${{ github.event_name }}
+          PR_BASE_SHA: ${{ github.event.pull_request.base.sha }}
+          PUSH_BEFORE_SHA: ${{ github.event.before }}
+        run: |
+          if [ "$EVENT_NAME" = "pull_request" ]; then
+            BASE="$PR_BASE_SHA"
+          else
+            BASE="$PUSH_BEFORE_SHA"
+          fi
+          # Defense-in-depth: only ever treat BASE as a sha, never as a ref.
+          if ! printf '%s' "$BASE" | grep -qE '^[0-9a-f]{40}$'; then
+            BASE=""
+          fi
+          # New branch or force-push: base is unknown/absent. Fall back to an
+          # orphan empty commit so the guard scans every file in the push.
+          # (reset --soft needs a commit; the bare empty tree is rejected.)
+          if [ -z "$BASE" ] || [ "$BASE" = "0000000000000000000000000000000000000000" ] || ! git cat-file -e "$BASE^{commit}" 2>/dev/null; then
+            BASE=$(git -c user.name=brain-guard -c user.email=guard@ci \
+              commit-tree "$(git hash-object -t tree /dev/null)" -m empty </dev/null)
+          fi
+          git reset --soft "$BASE"
+          bash hooks/pre-commit

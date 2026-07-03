@@ -1,0 +1,96 @@
+# Weekly staleness digest.
+#
+# WHY THIS EXISTS: the brain's freshness and self-improvement promises fail
+# silently. autoUpdate can be missing, signals.md can sit empty for months,
+# shared-memory can stay a scaffold, and nothing complains. sync-with-brain
+# detects drift but only when someone runs it. This workflow is the nudge that
+# does not depend on anyone remembering: a scheduled, deterministic check that
+# opens (or updates) ONE digest issue when the brain looks stale. Zero AI
+# tokens, zero client setup; it ships with the template and runs on every fork.
+#
+# It never blocks anything. It is a review-ritual trigger, not a gate.
+
+name: brain-staleness-digest
+
+on:
+  schedule:
+    - cron: '0 9 * * 1'  # Mondays 09:00 UTC
+  workflow_dispatch: {}
+
+permissions:
+  contents: read
+  issues: write
+
+jobs:
+  digest:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Assess staleness
+        id: assess
+        run: |
+          NOW=$(date +%s)
+          FINDINGS=""
+
+          # 1. Repo freshness: no commits in 21 days suggests the brain is not
+          #    being fed (or everyone drifted to local-only habits).
+          LAST_COMMIT=$(git log -1 --format=%ct)
+          AGE_DAYS=$(( (NOW - LAST_COMMIT) / 86400 ))
+          if [ "$AGE_DAYS" -ge 21 ]; then
+            FINDINGS="${FINDINGS}- No commits in ${AGE_DAYS} days. Is context accumulating somewhere local instead of the brain?\n"
+          fi
+
+          # 2. Self-improvement loop: signals.md never touched, or not touched
+          #    in 30 days, means the friction journal is not being used.
+          if [ -f meta/signals.md ]; then
+            SIG_COMMIT=$(git log -1 --format=%ct -- meta/signals.md)
+            SIG_AGE=$(( (NOW - SIG_COMMIT) / 86400 ))
+            SIG_ENTRIES=$(sed -n '/Append new signals below/,$p' meta/signals.md | grep -c '[^[:space:]]' || true)
+            if [ "$SIG_ENTRIES" -le 1 ]; then
+              FINDINGS="${FINDINGS}- meta/signals.md has no entries. The review ritual has nothing to review; log friction as it happens.\n"
+            elif [ "$SIG_AGE" -ge 30 ]; then
+              FINDINGS="${FINDINGS}- meta/signals.md last touched ${SIG_AGE} days ago. If nothing felt slow or broken in a month, that is worth doubting.\n"
+            fi
+          fi
+
+          # 3. Shared memory adoption: an empty INDEX weeks after install means
+          #    the tier the whole design centres on is not being used.
+          if [ -f shared-memory/INDEX.md ]; then
+            FACTS=$(grep -c '^- \[' shared-memory/INDEX.md || true)
+            if [ "$FACTS" -eq 0 ] && [ "$AGE_DAYS" -ge 0 ]; then
+              REPO_AGE_DAYS=$(( (NOW - $(git log --reverse --format=%ct | head -1)) / 86400 ))
+              if [ "$REPO_AGE_DAYS" -ge 21 ]; then
+                FINDINGS="${FINDINGS}- shared-memory/INDEX.md has zero entries ${REPO_AGE_DAYS} days in. Facts are staying siloed on individual devices or in chat history.\n"
+              fi
+            fi
+          fi
+
+          if [ -n "$FINDINGS" ]; then
+            echo "stale=true" >> "$GITHUB_OUTPUT"
+            {
+              echo 'findings<<EOF'
+              printf '%b' "$FINDINGS"
+              echo 'EOF'
+            } >> "$GITHUB_OUTPUT"
+          else
+            echo "stale=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Open or update the digest issue
+        if: steps.assess.outputs.stale == 'true'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          FINDINGS: ${{ steps.assess.outputs.findings }}
+          REPO: ${{ github.repository }}
+        run: |
+          BODY=$(printf 'Weekly automated check. The brain looks stale on these dimensions:\n\n%s\nSuggested ritual: run sync-with-brain on your devices, read meta/signals.md as a cluster, and record any architectural change in meta/decisions.md. Close this issue when reviewed; the next stale week reopens it.\n' "$FINDINGS")
+          EXISTING=$(gh issue list --repo "$REPO" --label brain-staleness --state open --json number --jq '.[0].number // empty')
+          if [ -n "$EXISTING" ]; then
+            gh issue comment "$EXISTING" --repo "$REPO" --body "$BODY"
+          else
+            gh label create brain-staleness --repo "$REPO" --description "Automated brain staleness digest" --color D93F0B 2>/dev/null || true
+            gh issue create --repo "$REPO" --title "Brain staleness digest" --label brain-staleness --body "$BODY"
+          fi

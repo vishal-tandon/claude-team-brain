@@ -26,9 +26,11 @@ siloed in personal memory.**
 | Role-based reasoning lenses | `perspectives/` | Always |
 
 Cross-contaminating these breaks teammates' sessions. The pre-commit hook
-enforces this mechanically. When in doubt: if content tells Claude how to talk
-to YOU, it is personal. If it would help anyone working on this project, it
-is shared.
+enforces this mechanically on every device where setup-brain ran, and the
+`brain-guard` GitHub Action re-runs the same scan server-side on every push,
+so a clone without the hook is still covered. When in doubt: if content tells
+Claude how to talk to YOU, it is personal. If it would help anyone working on
+this project, it is shared.
 
 ---
 
@@ -52,6 +54,13 @@ Role-based reasoning lenses. Load with: "Review this from the [name]
 perspective." Perspectives change what Claude looks for. They do NOT change
 how Claude talks to you. See `perspectives/_TEMPLATE.md` and
 `perspectives/example-perspective.md`.
+
+**Solo mode exception (`personal/`)**
+A single-owner brain (`"mode": "solo"` in `brain.config.json`) may sync Tier 1
+content across the owner's own devices, but ONLY under `personal/`, and the
+repo must stay private. In team mode (the default) that directory is ignored
+and the guard blocks personal content everywhere. See `personal/INDEX.md` for
+how to enable and how to keep the copies fresh.
 
 ---
 

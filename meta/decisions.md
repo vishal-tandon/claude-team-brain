@@ -104,3 +104,75 @@ the surface area a new user must understand.
 - Solo users and team users use the same system; solo is the default, team
   features activate as more people join.
 
+
+---
+
+## ADR-002: Server-side guard, solo personal tier, freshness surfacing
+
+**Date:** 2026-07-03
+**Status:** Accepted
+
+### Context
+
+A live deployment audit (solo fork, 11 days of use) surfaced three failure
+classes the original design left open:
+
+1. **The most important rule was enforced client-side only.** The
+   personal-content guard ran solely as a pre-commit hook, which protects only
+   devices where setup-brain set `core.hooksPath`. Any bare clone could push
+   personal content or secrets straight to main.
+2. **Freshness failed silently.** The system's "always up to date" promise
+   rests on two invisible client flags (the marketplace `autoUpdate` flag and
+   the SessionStart pull hook). In the audited deployment the flag was missing
+   and the plugin cache sat stale for 11 days with no complaint. The
+   self-improvement loop (signals.md, review ritual) had likewise never fired:
+   nothing triggers it.
+3. **"Solo across devices is first-class" had no mechanism.** Tier 1 was
+   defined as never-synced, yet the solo user's personal layer is exactly the
+   context that must travel. The audited fork hand-rolled a synced personal
+   tier with manual snapshot copies, which drifted ~180 lines from the live
+   files within 10 days: proof both that the need is real and that unmanaged
+   snapshots fail.
+
+### Options considered
+
+**Keep everything client-side and document harder.** Rejected: the observed
+failures were silent; documentation does not surface them.
+
+**An AI agent (scheduled Claude run) to audit freshness and boundaries.**
+Rejected as the default: every check involved is deterministic (diff scan,
+timestamp math, flag presence). Shell in GitHub Actions does it at zero token
+cost and with no billing setup on forks. AI review can be layered on later.
+
+**A separate personal-sync tool outside the brain repo.** Rejected: a second
+sync channel to install and keep healthy reintroduces the drift problem it
+solves.
+
+### Decision
+
+1. **`brain-guard` workflow** re-runs the exact `hooks/pre-commit` scan
+   server-side on every push and PR (soft-reset trick stages the pushed diff,
+   then runs the hook verbatim: one scan implementation, two enforcement
+   points). Governed mode adds it as a required status check.
+2. **`brain-staleness-digest` workflow** runs weekly, deterministically checks
+   repo freshness, signals.md activity, and shared-memory adoption, and
+   maintains a single digest issue. It is the review ritual's forcing function.
+3. **`hooks/session-start.sh`** replaces the bare `git pull` SessionStart
+   hook. It ships in the repo (updates via pull), pulls context, and prints
+   one-line in-session warnings on pull failure or a missing autoUpdate flag.
+4. **Solo mode is now a config flag** (`"mode": "solo"`). It gates a synced
+   `personal/` tier: the guard permits personal content there ONLY, still
+   scans it for secrets, and blocks it everywhere else. `personal/INDEX.md`
+   entries declare `source:` lines; push-to-brain refreshes snapshots before
+   every push, sync-with-brain applies pulled updates back outward. Team mode
+   keeps `personal/` ignored and fully blocked.
+
+### Consequences
+
+- The boundary rule no longer depends on every device running the installer.
+- Freshness failures and a dormant review ritual surface within a week
+  instead of never.
+- A solo brain with a synced personal tier must stay private; converting to
+  team use requires re-ignoring `personal/` and purging its history.
+- The guard scan logic must stay in `hooks/pre-commit` (both enforcement
+  points execute that file); never fork the patterns into the workflow.
